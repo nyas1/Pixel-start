@@ -66,9 +66,6 @@ export const SettingsWidgetsTab: React.FC<SettingsWidgetsTabProps> = ({
                 <p className="text-[var(--color-muted)] text-xs">
                     Note: Toggling widgets may reset their position to the bottom of the grid.
                 </p>
-                <p className="text-[var(--color-accent)] text-xs font-bold">
-                    Tip: Double-click to add duplicate widgets.
-                </p>
             </div>
         </div>
     );
