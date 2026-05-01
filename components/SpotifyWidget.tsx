@@ -24,9 +24,8 @@ const getEndpoint = () => {
   return '/api/spotify-now-playing';
 };
 
-/** Bordered art frame: fallbacks avoid a light border/flash before theme vars exist */
-const artFrame =
-  'min-h-0 w-full flex-1 flex items-center justify-center overflow-hidden border border-[var(--color-border,#444444)] bg-[var(--color-hover,#1a1a1a)]';
+/** Art area: no chrome — full cover scales with flex-1 */
+const artArea = 'min-h-0 w-full flex-1 flex items-center justify-center overflow-hidden';
 
 export const SpotifyWidget: React.FC = () => {
   const [state, setState] = useState<WidgetState>({ status: 'loading' });
@@ -84,7 +83,7 @@ export const SpotifyWidget: React.FC = () => {
     if (!data.title || !data.artist) {
       return (
         <div className="flex min-h-0 flex-1 flex-col gap-2">
-          <div className={artFrame}>
+          <div className={artArea}>
             <span className="text-[10px] text-[var(--color-muted,#888888)]">—</span>
           </div>
           <div className="w-full shrink-0 text-center">
@@ -97,7 +96,7 @@ export const SpotifyWidget: React.FC = () => {
 
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <div className={`${artFrame} p-1`}>
+        <div className={artArea}>
           {data.albumImageUrl ? (
             <img
               src={data.albumImageUrl}
