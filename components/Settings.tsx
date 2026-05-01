@@ -31,7 +31,6 @@ export const Settings: React.FC = () => {
         reserveSettingsSpace, setReserveSettingsSpace,
         funOptions, setFunOptions,
         presets, handleSavePreset, handleLoadPreset, handleDeletePreset,
-        widgetRadius, setWidgetRadius,
         openInNewTab, setOpenInNewTab,
         searchDefaultEngine, setSearchDefaultEngine,
         searchEnabledEngines, setSearchEnabledEngines,
@@ -275,8 +274,6 @@ export const Settings: React.FC = () => {
                                     onToggleReserveSettings={() => setReserveSettingsSpace(!reserveSettingsSpace)}
                                     customFont={customFont}
                                     onCustomFontChange={setCustomFont}
-                                    widgetRadius={widgetRadius}
-                                    onWidgetRadiusChange={setWidgetRadius}
                                     isLayoutLocked={isLayoutLocked}
                                     onToggleLayoutLock={() => setIsLayoutLocked(!isLayoutLocked)}
                                     onResetLayout={resetLayout}

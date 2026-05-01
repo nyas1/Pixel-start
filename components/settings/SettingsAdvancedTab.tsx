@@ -10,8 +10,6 @@ interface SettingsAdvancedTabProps {
     onToggleReserveSettings: () => void;
     customFont: string;
     onCustomFontChange: (font: string) => void;
-    widgetRadius?: number;
-    onWidgetRadiusChange?: (value: number) => void;
     isLayoutLocked: boolean;
     onToggleLayoutLock: () => void;
     onResetLayout: () => void;
@@ -66,8 +64,6 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onToggleReserveSettings,
     customFont,
     onCustomFontChange,
-    widgetRadius = 4,
-    onWidgetRadiusChange,
     isLayoutLocked,
     onToggleLayoutLock,
     onResetLayout,
@@ -102,6 +98,26 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onCustomCssChange,
     weatherLocation, setWeatherLocation,
 }) => {
+    const clickTimeoutsRef = React.useRef<Record<string, number>>({});
+
+    const handleEngineClick = (engineId: SearchEngineId, clickDetail: number) => {
+        const key = String(engineId);
+
+        if (clickDetail === 2) {
+            if (clickTimeoutsRef.current[key]) {
+                window.clearTimeout(clickTimeoutsRef.current[key]);
+                delete clickTimeoutsRef.current[key];
+            }
+            onSearchDefaultEngineChange(engineId);
+            return;
+        }
+
+        clickTimeoutsRef.current[key] = window.setTimeout(() => {
+            onToggleSearchEngine(engineId);
+            delete clickTimeoutsRef.current[key];
+        }, 220);
+    };
+
     return (
         <div className="space-y-6">
 
@@ -139,19 +155,6 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                             onChange={(e) => onCustomFontChange(e.target.value)}
                         />
                         <span className="text-[var(--color-muted)] text-[10px] opacity-60">Press enter or click away to apply.</span>
-                    </div>
-
-
-                    <div className="flex flex-col gap-1 mt-2 border-t border-[var(--color-border)] pt-2 border-dashed">
-                        <AsciiSlider
-                            label="Widget Roundness"
-                            value={widgetRadius}
-                            min={0}
-                            max={24}
-                            displayValue={`${widgetRadius}px`}
-                            onChange={(v) => onWidgetRadiusChange?.(v)}
-                            hint="0 = sharp corners, 24 = very round"
-                        />
                     </div>
 
                 </div>
@@ -272,45 +275,52 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             <div className="border border-[var(--color-border)] p-4">
                 <h3 className="text-[var(--color-accent)] font-bold mb-2">Date & Time Settings</h3>
                 <div className="flex flex-col gap-3">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <div onClick={() => onTimeFormatChange('12h')} className="flex items-center gap-2 cursor-pointer select-none group">
-                            <span className="font-mono text-[var(--color-accent)] font-bold">
-                                {timeFormat === '12h' ? '[x]' : '[ ]'}
-                            </span>
-                            <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">12-hour</span>
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[var(--color-muted)] text-xs">Time</span>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div onClick={() => onTimeFormatChange('12h')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {timeFormat === '12h' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">12-hour</span>
+                            </div>
+                            <div onClick={() => onTimeFormatChange('24h')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {timeFormat === '24h' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">24-hour</span>
+                            </div>
                         </div>
-                        <div onClick={() => onTimeFormatChange('24h')} className="flex items-center gap-2 cursor-pointer select-none group">
+                        <div onClick={onToggleClockShowSeconds} className="flex items-center gap-2 cursor-pointer select-none group border-t border-[var(--color-border)] pt-2 border-dashed">
                             <span className="font-mono text-[var(--color-accent)] font-bold">
-                                {timeFormat === '24h' ? '[x]' : '[ ]'}
+                                {clockShowSeconds ? '[x]' : '[ ]'}
                             </span>
-                            <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">24-hour</span>
-                        </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4 border-t border-[var(--color-border)] pt-2 border-dashed">
-                        <div onClick={() => onDateFormatChange('long')} className="flex items-center gap-2 cursor-pointer select-none group">
-                            <span className="font-mono text-[var(--color-accent)] font-bold">
-                                {dateFormat === 'long' ? '[x]' : '[ ]'}
-                            </span>
-                            <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Date: long</span>
-                        </div>
-                        <div onClick={() => onDateFormatChange('short')} className="flex items-center gap-2 cursor-pointer select-none group">
-                            <span className="font-mono text-[var(--color-accent)] font-bold">
-                                {dateFormat === 'short' ? '[x]' : '[ ]'}
-                            </span>
-                            <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Date: short</span>
+                            <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Show seconds</span>
                         </div>
                     </div>
-                    <div onClick={onToggleClockShowDay} className="flex items-center gap-2 cursor-pointer select-none group border-t border-[var(--color-border)] pt-2 border-dashed">
-                        <span className="font-mono text-[var(--color-accent)] font-bold">
-                            {clockShowDay ? '[x]' : '[ ]'}
-                        </span>
-                        <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Show day</span>
-                    </div>
-                    <div onClick={onToggleClockShowSeconds} className="flex items-center gap-2 cursor-pointer select-none group border-t border-[var(--color-border)] pt-2 border-dashed">
-                        <span className="font-mono text-[var(--color-accent)] font-bold">
-                            {clockShowSeconds ? '[x]' : '[ ]'}
-                        </span>
-                        <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Show seconds</span>
+
+                    <div className="flex flex-col gap-2 border-t border-[var(--color-border)] pt-2 border-dashed">
+                        <span className="text-[var(--color-muted)] text-xs">Date</span>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div onClick={() => onDateFormatChange('long')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {dateFormat === 'long' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Long</span>
+                            </div>
+                            <div onClick={() => onDateFormatChange('short')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {dateFormat === 'short' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Short (dd/mm/yy)</span>
+                            </div>
+                        </div>
+                        <div onClick={onToggleClockShowDay} className="flex items-center gap-2 cursor-pointer select-none group border-t border-[var(--color-border)] pt-2 border-dashed">
+                            <span className="font-mono text-[var(--color-accent)] font-bold">
+                                {clockShowDay ? '[x]' : '[ ]'}
+                            </span>
+                            <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Show day</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -326,45 +336,33 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             </div>
 
             <div className="border border-[var(--color-border)] p-4">
-                <h3 className="text-[var(--color-accent)] font-bold mb-2">Keyboard</h3>
-                <div onClick={onToggleSearchSlashHotkey} className="flex items-center gap-2 cursor-pointer select-none group">
-                    <span className="font-mono text-[var(--color-accent)] font-bold">
-                        {searchSlashHotkeyEnabled ? '[x]' : '[ ]'}
-                    </span>
-                    <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Use '/' to focus search</span>
-                </div>
-            </div>
-
-            <div className="border border-[var(--color-border)] p-4">
                 <h3 className="text-[var(--color-accent)] font-bold mb-2">Search</h3>
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <span className="text-[var(--color-muted)] text-xs">Default Engine</span>
+                        <span className="text-[var(--color-muted)] text-xs">Engines (single click: enable/disable, double click: set default)</span>
                         <div className="flex flex-wrap gap-4">
                             {SEARCH_ENGINES.map((engine) => (
-                                <div key={engine.id} onClick={() => onSearchDefaultEngineChange(engine.id)} className="flex items-center gap-2 cursor-pointer select-none group">
-                                    <span className="font-mono text-[var(--color-accent)] font-bold">
-                                        {searchDefaultEngine === engine.id ? '[x]' : '[ ]'}
-                                    </span>
-                                    <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">{engine.label}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2 border-t border-[var(--color-border)] pt-3 border-dashed">
-                        <span className="text-[var(--color-muted)] text-xs">Enabled Engines (click-cycle list)</span>
-                        <div className="flex flex-wrap gap-4">
-                            {SEARCH_ENGINES.map((engine) => (
-                                <div key={engine.id} onClick={() => onToggleSearchEngine(engine.id)} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <div
+                                    key={engine.id}
+                                    onClick={(e) => handleEngineClick(engine.id, e.detail)}
+                                    className="flex items-center gap-2 cursor-pointer select-none group"
+                                >
                                     <span className="font-mono text-[var(--color-accent)] font-bold">
                                         {searchEnabledEngines.includes(engine.id) ? '[x]' : '[ ]'}
                                     </span>
-                                    <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">{engine.label}</span>
+                                    <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">
+                                        {engine.label}{searchDefaultEngine === engine.id ? ' *' : ''}
+                                    </span>
                                 </div>
                             ))}
                         </div>
                         <span className="text-[var(--color-muted)] text-[10px] opacity-70">At least one engine stays enabled.</span>
+                    </div>
+                    <div onClick={onToggleSearchSlashHotkey} className="flex items-center gap-2 cursor-pointer select-none group border-t border-[var(--color-border)] pt-2 border-dashed">
+                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                            {searchSlashHotkeyEnabled ? '[x]' : '[ ]'}
+                        </span>
+                        <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Use '/' to focus search</span>
                     </div>
                 </div>
             </div>

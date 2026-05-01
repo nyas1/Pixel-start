@@ -82,8 +82,6 @@ interface AppContextType {
     setClockShowDay: (show: boolean) => void;
     clockShowSeconds: boolean;
     setClockShowSeconds: (show: boolean) => void;
-    widgetRadius: number;
-    setWidgetRadius: (radius: number) => void;
     openInNewTab: boolean;
     setOpenInNewTab: (isOpen: boolean) => void;
     searchDefaultEngine: SearchEngineId;
@@ -149,7 +147,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [clockShowDay, setClockShowDay] = useStickyState<boolean>(true, 'tui-clock-show-day');
     const [clockShowSeconds, setClockShowSeconds] = useStickyState<boolean>(true, 'tui-clock-show-seconds');
 
-    const [widgetRadius, setWidgetRadius] = useStickyState<number>(0, 'tui-widget-radius');
     const [openInNewTab, setOpenInNewTab] = useStickyState<boolean>(false, 'tui-open-new-tab');
     const [searchDefaultEngine, setSearchDefaultEngine] = useStickyState<SearchEngineId>('google', 'tui-search-default-engine');
     const [searchEnabledEngines, setSearchEnabledEngines] = useStickyState<SearchEngineId[]>(DEFAULT_SEARCH_ENGINE_IDS, 'tui-search-enabled-engines');
@@ -294,12 +291,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         document.body.style.backgroundColor = theme.colors.bg;
     }, [currentTheme, allThemes]); // Added allThemes to deps
 
-    // Apply Widget Radius
-    useEffect(() => {
-        const root = document.documentElement;
-        root.style.setProperty('--widget-radius', `${widgetRadius}px`);
-    }, [widgetRadius]);
-
     // Apply Custom CSS
     useEffect(() => {
         const styleId = 'tui-user-custom-css';
@@ -360,7 +351,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setDateFormat('long');
         setClockShowDay(true);
         setClockShowSeconds(true);
-        setWidgetRadius(0);
         setFunOptions(funDefaults);
         setSearchDefaultEngine('google');
         setSearchEnabledEngines(DEFAULT_SEARCH_ENGINE_IDS);
@@ -466,7 +456,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 showWidgetTitles,
                 customFont,
                 funOptions,
-                widgetRadius,
                 openInNewTab,
                 searchDefaultEngine,
                 searchEnabledEngines,
@@ -496,7 +485,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (d.showWidgetTitles !== undefined) setShowWidgetTitles(d.showWidgetTitles);
         if (d.customFont !== undefined) setCustomFont(d.customFont);
         if (d.funOptions) setFunOptions(d.funOptions);
-        if (d.widgetRadius !== undefined) setWidgetRadius(d.widgetRadius);
         if (d.openInNewTab !== undefined) setOpenInNewTab(d.openInNewTab);
         if (d.searchDefaultEngine) setSearchDefaultEngine(d.searchDefaultEngine);
         if (d.searchEnabledEngines) setSearchEnabledEngines(d.searchEnabledEngines);
@@ -523,7 +511,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dateFormat, setDateFormat,
         clockShowDay, setClockShowDay,
         clockShowSeconds, setClockShowSeconds,
-        widgetRadius, setWidgetRadius,
         openInNewTab, setOpenInNewTab,
         searchDefaultEngine, setSearchDefaultEngine,
         searchEnabledEngines, setSearchEnabledEngines,
