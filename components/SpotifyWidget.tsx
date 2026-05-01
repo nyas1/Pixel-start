@@ -24,13 +24,6 @@ const getEndpoint = () => {
   return '/api/spotify-now-playing';
 };
 
-const formatPlayedAt = (iso?: string) => {
-  if (!iso) return '';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return `Last played ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-};
-
 export const SpotifyWidget: React.FC = () => {
   const [state, setState] = useState<WidgetState>({ status: 'loading' });
 
@@ -67,44 +60,67 @@ export const SpotifyWidget: React.FC = () => {
   }, []);
 
   const content = useMemo(() => {
+    const frame = 'border border-[var(--color-border)] bg-[var(--color-bg)]';
+    const artSize = 'w-[min(72%,9.5rem)] aspect-square max-h-[42%] shrink-0';
+
     if (state.status === 'loading') {
-      return <div className="text-xs text-[var(--color-muted)]">loading spotify...</div>;
+      return (
+        <div className={`flex flex-1 flex-col items-center justify-center ${frame} min-h-[4.5rem] w-full`}>
+          <span className="text-xs text-[var(--color-muted)] px-2 text-center">loading…</span>
+        </div>
+      );
     }
 
     if (state.status === 'error') {
-      return <div className="text-xs text-[var(--color-muted)]">{state.message}</div>;
+      return (
+        <div className={`flex flex-1 flex-col items-center justify-center ${frame} min-h-[4.5rem] w-full`}>
+          <span className="text-xs text-[var(--color-muted)] px-2 text-center leading-snug">{state.message}</span>
+        </div>
+      );
     }
 
     const { data } = state;
     if (!data.title || !data.artist) {
-      return <div className="text-xs text-[var(--color-muted)]">nothing played yet</div>;
+      return (
+        <div className="flex flex-1 flex-col items-center justify-start gap-3 pt-1 min-h-0 w-full">
+          <div className={`${artSize} ${frame} flex items-center justify-center`}>
+            <span className="text-[10px] text-[var(--color-muted)] px-2 text-center">—</span>
+          </div>
+          <div className="w-full text-center px-1 min-w-0">
+            <p className="text-sm font-bold text-[var(--color-fg)] truncate">—</p>
+            <p className="text-xs text-[var(--color-muted)] truncate mt-1">nothing yet</p>
+          </div>
+        </div>
+      );
     }
 
     return (
-      <div className="w-full h-full flex gap-3 items-center">
-        {data.albumImageUrl ? (
-          <img
-            src={data.albumImageUrl}
-            alt={data.album ? `${data.album} cover` : 'album cover'}
-            className="w-14 h-14 border border-[var(--color-border)] object-cover flex-shrink-0"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-14 h-14 border border-[var(--color-border)] text-[10px] text-[var(--color-muted)] flex items-center justify-center flex-shrink-0">
-            no art
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1">
-          <div className="font-mono text-sm text-[var(--color-fg)] truncate">{data.title}</div>
-          <div className="font-mono text-xs text-[var(--color-muted)] truncate">{data.artist}</div>
-          {!data.isPlaying && data.playedAt ? (
-            <div className="text-[10px] text-[var(--color-muted)] mt-1">{formatPlayedAt(data.playedAt)}</div>
-          ) : null}
+      <div className="flex flex-1 flex-col items-center justify-start gap-3 pt-1 min-h-0 w-full">
+        <div className={`${artSize} ${frame} overflow-hidden flex items-center justify-center`}>
+          {data.albumImageUrl ? (
+            <img
+              src={data.albumImageUrl}
+              alt={data.album ? `${data.album} cover` : 'album cover'}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <span className="text-[10px] text-[var(--color-muted)] px-2 text-center">no art</span>
+          )}
+        </div>
+        <div className="w-full text-center px-1 min-w-0 flex flex-col gap-1">
+          <p className="text-base sm:text-lg font-bold text-[var(--color-fg)] leading-tight truncate">
+            {data.title}
+          </p>
+          <p className="text-xs sm:text-sm text-[var(--color-muted)] font-mono truncate">{data.artist}</p>
         </div>
       </div>
     );
   }, [state]);
 
-  return <div className="w-full h-full px-2 py-1 overflow-hidden">{content}</div>;
+  return (
+    <div className="flex h-full min-h-0 w-full flex-col items-stretch overflow-hidden">
+      {content}
+    </div>
+  );
 };
