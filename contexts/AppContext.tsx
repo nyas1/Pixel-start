@@ -105,6 +105,12 @@ interface AppContextType {
     setFunOptions: (options: FunOptions) => void;
     activeWidgets: Record<string, boolean>;
     setActiveWidgets: (widgets: Record<string, boolean>) => void;
+    /** When true, Spotify cover uses pixel-downscaled art; when false, full-resolution image. */
+    spotifyPixelAlbumArt: boolean;
+    setSpotifyPixelAlbumArt: (value: boolean) => void;
+    /** When true, Spotify shows animated EQ bars; when false, the bar strip is hidden. */
+    spotifyPulse: boolean;
+    setSpotifyPulse: (value: boolean) => void;
     isLayoutLocked: boolean;
     setIsLayoutLocked: (locked: boolean) => void;
     isResizingEnabled: boolean;
@@ -197,6 +203,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         rain: false,
         maze: false
     }, 'tui-active-widgets-v4');
+
+    const [spotifyPixelAlbumArt, setSpotifyPixelAlbumArt] = useStickyState<boolean>(true, 'tui-spotify-pixel-album-art');
+    const [spotifyPulse, setSpotifyPulse] = useStickyState<boolean>(true, 'tui-spotify-pulse');
 
     const [isLayoutLocked, setIsLayoutLocked] = useStickyState<boolean>(true, 'tui-layout-locked-v2');
     const [isResizingEnabled, setIsResizingEnabled] = useStickyState<boolean>(false, 'tui-resizing-enabled');
@@ -364,6 +373,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setSearchDefaultEngine('google');
         setSearchEnabledEngines(DEFAULT_SEARCH_ENGINE_IDS);
         setSearchSlashHotkeyEnabled(true);
+        setSpotifyPixelAlbumArt(true);
+        setSpotifyPulse(true);
     };
 
     const removeExtraWidget = (key: string) => {
@@ -469,7 +480,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 openInNewTab,
                 searchDefaultEngine,
                 searchEnabledEngines,
-                searchSlashHotkeyEnabled
+                searchSlashHotkeyEnabled,
+                spotifyPixelAlbumArt,
+                spotifyPulse
             }
         };
         setPresets([...presets, newPreset]);
@@ -500,6 +513,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (d.searchDefaultEngine) setSearchDefaultEngine(d.searchDefaultEngine);
         if (d.searchEnabledEngines) setSearchEnabledEngines(d.searchEnabledEngines);
         if (d.searchSlashHotkeyEnabled !== undefined) setSearchSlashHotkeyEnabled(d.searchSlashHotkeyEnabled);
+        if (d.spotifyPixelAlbumArt !== undefined) setSpotifyPixelAlbumArt(d.spotifyPixelAlbumArt);
+        if (d.spotifyPulse !== undefined) setSpotifyPulse(d.spotifyPulse);
     };
 
     const handleDeletePreset = (id: number) => {
@@ -532,6 +547,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         customFont, setCustomFont,
         funOptions, setFunOptions,
         activeWidgets, setActiveWidgets,
+        spotifyPixelAlbumArt, setSpotifyPixelAlbumArt,
+        spotifyPulse, setSpotifyPulse,
         isLayoutLocked, setIsLayoutLocked,
         isResizingEnabled, setIsResizingEnabled,
         presets, setPresets,

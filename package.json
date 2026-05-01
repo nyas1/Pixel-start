@@ -8,13 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-grid-layout": "^1.4.4",
-    "lodash": "^4.17.21",
     "@fontsource/jetbrains-mono": "^5.0.0",
     "@fontsource/vt323": "^5.0.0",
-    "dseg": "^0.46.0"
+    "dseg": "^0.46.0",
+    "lodash": "^4.17.21",
+    "pixelarticons": "^2.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-grid-layout": "^1.4.4"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

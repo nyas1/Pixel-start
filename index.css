@@ -296,3 +296,55 @@
 .settings-guard-item .react-resizable-handle {
     display: none !important;
 }
+
+/* Spotify widget — bottom equalizer bars */
+@keyframes spotify-eq-pulse {
+    0%,
+    100% {
+        transform: scaleY(0.22);
+    }
+
+    50% {
+        transform: scaleY(1);
+    }
+}
+
+@keyframes spotify-eq-pulse-idle {
+    0%,
+    100% {
+        transform: scaleY(0.18);
+    }
+
+    50% {
+        transform: scaleY(0.42);
+    }
+}
+
+.spotify-eq-bar {
+    height: 14px;
+    width: 4px;
+    min-width: 4px;
+    transform-origin: bottom center;
+    border-radius: 9999px;
+    background: var(--color-accent);
+}
+
+.spotify-eq-bar--playing {
+    animation-name: spotify-eq-pulse;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+.spotify-eq-bar--idle {
+    animation-name: spotify-eq-pulse-idle;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    opacity: 0.55;
+}
+
+/* Spotify album art — downscaled bitmap shown large with sharp blocks */
+.pixel-album-art {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}

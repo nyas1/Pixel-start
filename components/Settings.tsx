@@ -26,6 +26,8 @@ export const Settings: React.FC = () => {
         isResizingEnabled, setIsResizingEnabled,
         resetLayout,
         activeWidgets, toggleWidget, addExtraWidget,
+        spotifyPixelAlbumArt, setSpotifyPixelAlbumArt,
+        spotifyPulse, setSpotifyPulse,
         showWidgetTitles, setShowWidgetTitles,
         customFont, setCustomFont,
         reserveSettingsSpace, setReserveSettingsSpace,
@@ -311,6 +313,10 @@ export const Settings: React.FC = () => {
                                     onCustomCssChange={setCustomCss}
                                     weatherLocation={weatherLocation}
                                     setWeatherLocation={setWeatherLocation}
+                                    spotifyPixelAlbumArt={spotifyPixelAlbumArt}
+                                    onToggleSpotifyPixelAlbumArt={() => setSpotifyPixelAlbumArt(!spotifyPixelAlbumArt)}
+                                    spotifyPulse={spotifyPulse}
+                                    onToggleSpotifyPulse={() => setSpotifyPulse(!spotifyPulse)}
                                 />
                             )}
 

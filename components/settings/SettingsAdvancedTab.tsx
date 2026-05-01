@@ -56,6 +56,10 @@ interface SettingsAdvancedTabProps {
     onCustomCssChange: (css: string) => void;
     weatherLocation: { latitude: null | number; longitude: null | number };
     setWeatherLocation: (location: { latitude:  null | number; longitude: null | number }) => void;
+    spotifyPixelAlbumArt: boolean;
+    onToggleSpotifyPixelAlbumArt: () => void;
+    spotifyPulse: boolean;
+    onToggleSpotifyPulse: () => void;
 
 }
 
@@ -101,6 +105,10 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     customCss,
     onCustomCssChange,
     weatherLocation, setWeatherLocation,
+    spotifyPixelAlbumArt,
+    onToggleSpotifyPixelAlbumArt,
+    spotifyPulse,
+    onToggleSpotifyPulse,
 }) => {
     const clickTimeoutsRef = React.useRef<Record<string, number>>({});
 
@@ -380,6 +388,36 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                     </div>
                 </div>
             </div>
+
+            {activeWidgets.spotify && (
+                <div className="border border-[var(--color-border)] p-4">
+                    <h3 className="text-[var(--color-accent)] font-bold mb-2">Spotify Widget</h3>
+                    <div className="flex flex-col gap-3">
+                        <div
+                            onClick={onToggleSpotifyPixelAlbumArt}
+                            className="flex items-center gap-2 cursor-pointer select-none group"
+                        >
+                            <span className="font-mono text-[var(--color-accent)] font-bold">
+                                {spotifyPixelAlbumArt ? '[x]' : '[ ]'}
+                            </span>
+                            <span className="text-[var(--color-fg)] text-sm group-hover:text-[var(--color-fg)]">
+                                Pixel album art
+                            </span>
+                        </div>
+                        <div
+                            onClick={onToggleSpotifyPulse}
+                            className="flex items-center gap-2 cursor-pointer select-none group"
+                        >
+                            <span className="font-mono text-[var(--color-accent)] font-bold">
+                                {spotifyPulse ? '[x]' : '[ ]'}
+                            </span>
+                            <span className="text-[var(--color-fg)] text-sm group-hover:text-[var(--color-fg)]">
+                                EQ Animation
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* matrix */}
             {activeWidgets['matrix'] && (
