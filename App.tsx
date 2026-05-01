@@ -133,7 +133,7 @@ function AppContent() {
                            type === 'starfield' ? 'starfield.scr' :
                            type === 'rain' ? 'rain.sh' :
                            type === 'maze' ? 'maze.gen' : type)
-                        : (type === 'todo' ? 'todo-list' : type === 'search' ? 'web_search' : type)
+                        : (type === 'todo' ? 'todo-list' : type === 'search' ? 'web-search' : type)
                 ),
                 showTitle: showWidgetTitles,
                 onClose: isExtra ? () => removeExtraWidget(key) : undefined
@@ -141,7 +141,7 @@ function AppContent() {
 
             switch (type) {
                 case 'search':
-                    return <TuiBox {...boxProps} title="web_search"><SearchWidget /></TuiBox>;
+                    return <TuiBox {...boxProps} title="web-search"><SearchWidget /></TuiBox>;
                 case 'datetime':
                     return <TuiBox {...boxProps} title="datetime"><DateTimeWidget /></TuiBox>;
                 case 'stats':

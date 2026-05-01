@@ -25,6 +25,16 @@ export const SettingsShortcutsTab: React.FC<SettingsShortcutsTabProps> = ({
         onUpdateLinks(newGroups);
     };
 
+    const handleEditCategory = (catIndex: number, value: string) => {
+        const newGroups = [...linkGroups];
+        if (!newGroups[catIndex]) return;
+        newGroups[catIndex] = {
+            ...newGroups[catIndex],
+            category: value
+        };
+        onUpdateLinks(newGroups);
+    };
+
     const handleAddLink = (catIndex: number) => {
         const catName = linkGroups[catIndex].category;
         const input = newLinkInputs[catName] || { label: '', url: '' };
@@ -75,10 +85,15 @@ export const SettingsShortcutsTab: React.FC<SettingsShortcutsTabProps> = ({
             {linkGroups.map((group, groupIdx) => (
                 <div key={groupIdx} className="border border-[var(--color-border)] p-4 relative no-radius">
                     <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-[var(--color-accent)] font-bold">{group.category}</h3>
+                        <input
+                            type="text"
+                            className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-accent)] font-bold px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full mr-3 select-text no-radius"
+                            value={group.category}
+                            onChange={(e) => handleEditCategory(groupIdx, e.target.value)}
+                        />
                         <button
                             onClick={() => handleDeleteCategory(groupIdx)}
-                            className="text-[var(--color-muted)] hover:text-red-500 text-xs"
+                            className="text-[var(--color-muted)] hover:text-red-500 text-xs whitespace-nowrap"
                         >
                             [delete group]
                         </button>
