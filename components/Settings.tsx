@@ -17,6 +17,7 @@ export const Settings: React.FC = () => {
         statsMode, setStatsMode,
         weatherMode, setWeatherMode,
         tempUnit, setTempUnit,
+        timeFormat, setTimeFormat,
         isLayoutLocked, setIsLayoutLocked,
         isResizingEnabled, setIsResizingEnabled,
         resetLayout,
@@ -257,6 +258,8 @@ export const Settings: React.FC = () => {
                                     onWeatherModeChange={setWeatherMode}
                                     tempUnit={tempUnit}
                                     onTempUnitChange={setTempUnit}
+                                    timeFormat={timeFormat}
+                                    onTimeFormatChange={setTimeFormat}
                                     openInNewTab={openInNewTab}
                                     onToggleOpenInNewTab={() => setOpenInNewTab(!openInNewTab)}
                                     activeWidgets={activeWidgets}

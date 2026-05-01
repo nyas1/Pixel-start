@@ -21,6 +21,8 @@ interface SettingsAdvancedTabProps {
     onWeatherModeChange: (mode: 'standard' | 'icon') => void;
     tempUnit: 'C' | 'F';
     onTempUnitChange: (unit: 'C' | 'F') => void;
+    timeFormat: '12h' | '24h';
+    onTimeFormatChange: (format: '12h' | '24h') => void;
     openInNewTab?: boolean;
     onToggleOpenInNewTab?: () => void;
     activeWidgets: Record<string, boolean>;
@@ -63,6 +65,8 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onWeatherModeChange,
     tempUnit,
     onTempUnitChange,
+    timeFormat,
+    onTimeFormatChange,
     openInNewTab,
     onToggleOpenInNewTab,
     activeWidgets,
@@ -122,6 +126,24 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                             onChange={(v) => onWidgetRadiusChange?.(v)}
                             hint="0 = sharp corners, 24 = very round"
                         />
+                    </div>
+
+                    <div className="flex flex-col gap-2 mt-2 border-t border-[var(--color-border)] pt-2 border-dashed">
+                        <span className="text-[var(--color-muted)] text-xs">Clock Format</span>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div onClick={() => onTimeFormatChange('12h')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {timeFormat === '12h' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">12-hour (AM/PM)</span>
+                            </div>
+                            <div onClick={() => onTimeFormatChange('24h')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {timeFormat === '24h' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">24-hour</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -244,7 +266,6 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
 
                 </div>
             </div>
-
 
             <div className="border border-[var(--color-border)] p-4">
                 <h3 className="text-[var(--color-accent)] font-bold mb-2">Link Behavior</h3>
@@ -508,7 +529,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             </div>
 
             <div className="text-[10px] text-[var(--color-muted)] mt-6 text-center opacity-50 font-mono">
-                v2.1
+                v2.2
             </div>
         </div>
     );

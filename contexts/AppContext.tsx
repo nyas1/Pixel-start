@@ -70,6 +70,8 @@ interface AppContextType {
     setLayouts: (layouts: Layouts) => void;
     tempUnit: 'C' | 'F';
     setTempUnit: (unit: 'C' | 'F') => void;
+    timeFormat: '12h' | '24h';
+    setTimeFormat: (format: '12h' | '24h') => void;
     widgetRadius: number;
     setWidgetRadius: (radius: number) => void;
     openInNewTab: boolean;
@@ -125,6 +127,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [layouts, setLayouts] = useStickyState<Layouts>(DEFAULT_LAYOUTS, 'tui-layouts-v4');
 
     const [tempUnit, setTempUnit] = useStickyState<'C' | 'F'>('C', 'tui-temp-unit');
+    const [timeFormat, setTimeFormat] = useStickyState<'12h' | '24h'>('12h', 'tui-time-format');
 
     const [widgetRadius, setWidgetRadius] = useStickyState<number>(0, 'tui-widget-radius');
     const [openInNewTab, setOpenInNewTab] = useStickyState<boolean>(false, 'tui-open-new-tab');
@@ -306,6 +309,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setStatsMode('minimal');
         setWeatherMode('standard');
         setTempUnit('C');
+        setTimeFormat('12h');
         setWidgetRadius(0);
         setFunOptions(funDefaults);
     };
@@ -399,6 +403,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 statsMode,
                 weatherMode,
                 tempUnit,
+                timeFormat,
                 layouts,
                 activeWidgets,
                 showWidgetTitles,
@@ -421,6 +426,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (d.statsMode) setStatsMode(d.statsMode);
         if (d.weatherMode) setWeatherMode(d.weatherMode);
         if (d.tempUnit) setTempUnit(d.tempUnit);
+        if (d.timeFormat) setTimeFormat(d.timeFormat);
         if (d.layouts) setLayouts(d.layouts);
         if (d.activeWidgets) setActiveWidgets(d.activeWidgets);
         if (d.showWidgetTitles !== undefined) setShowWidgetTitles(d.showWidgetTitles);
@@ -445,6 +451,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         weatherMode, setWeatherMode,
         layouts, setLayouts,
         tempUnit, setTempUnit,
+        timeFormat, setTimeFormat,
         widgetRadius, setWidgetRadius,
         openInNewTab, setOpenInNewTab,
         showWidgetTitles, setShowWidgetTitles,

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useAppContext } from '../contexts/AppContext';
 
 export const DateTimeWidget: React.FC = () => {
+  const { timeFormat } = useAppContext();
   const [date, setDate] = useState(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<'vertical' | 'horizontal'>('horizontal');
@@ -30,7 +32,7 @@ export const DateTimeWidget: React.FC = () => {
       const CHAR_ASPECT = 0.55;
 
       // Char counts based on format
-      const TIME_CHARS_H = 11; // "12:00:00 PM"
+      const TIME_CHARS_H = timeFormat === '12h' ? 11 : 8; // "12:00:00 PM" or "23:00:00"
       const TIME_CHARS_V_TOP = 8;  // "12:00:00"
 
       let newTimeFS = 0;
@@ -43,7 +45,7 @@ export const DateTimeWidget: React.FC = () => {
 
         // Height constraint: 
         // We need to fit: Time (1em) + PM (0.4em) + Date (1em approx) + Spacing
-        const totalHeightEm = 1 + 0.4 + 0.5; // Roughly 2em total height budget needed
+        const totalHeightEm = timeFormat === '12h' ? 1 + 0.4 + 0.5 : 1 + 0.5;
         const heightConstrainedFS = (h * 0.6) / totalHeightEm;
 
         newTimeFS = Math.min(widthConstrainedFS, heightConstrainedFS);
@@ -74,16 +76,17 @@ export const DateTimeWidget: React.FC = () => {
       observer.disconnect();
       clearTimeout(timeout);
     };
-  }, []);
+  }, [timeFormat]);
 
   const timeStringFull = date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: true
+    hour12: timeFormat === '12h'
   });
 
-  // Split "12:00:00 PM" -> ["12:00:00", "PM"]
+  // Split "12:00:00 PM" -> ["12:00:00", "PM"].
+  // In 24h format ampmPart is undefined.
   const [timePart, ampmPart] = timeStringFull.split(' ');
 
   const dateOptions: Intl.DateTimeFormatOptions = {
@@ -106,12 +109,14 @@ export const DateTimeWidget: React.FC = () => {
             {timePart}
           </div>
           {/* AM/PM */}
-          <div
-            className="font-digital text-[var(--color-fg)] leading-none opacity-80 mt-1"
-            style={{ fontSize: `${timeFontSize * 0.4}px` }}
-          >
-            {ampmPart}
-          </div>
+          {timeFormat === '12h' && (
+            <div
+              className="font-digital text-[var(--color-fg)] leading-none opacity-80 mt-1"
+              style={{ fontSize: `${timeFontSize * 0.4}px` }}
+            >
+              {ampmPart}
+            </div>
+          )}
           {/* Date */}
           <div
             className="text-[var(--color-muted)] font-mono text-center leading-tight mt-3 px-1 w-full truncate"
