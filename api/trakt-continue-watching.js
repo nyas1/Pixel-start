@@ -21,27 +21,39 @@ const getConfig = () => {
   if (!clientId || !clientSecret || !refreshToken) {
     throw createFailure('missing_env', 'Missing TRAKT_CLIENT_ID, TRAKT_CLIENT_SECRET, or TRAKT_REFRESH_TOKEN');
   }
-  return { clientId, clientSecret, refreshToken };
+  const redirectUri = process.env.TRAKT_REDIRECT_URI || '';
+  return { clientId, clientSecret, refreshToken, redirectUri };
 };
 
 const getAccessToken = async () => {
-  const { clientId, clientSecret, refreshToken } = getConfig();
+  const { clientId, clientSecret, refreshToken, redirectUri } = getConfig();
+  const tokenBody = {
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret
+  };
+  if (redirectUri.trim()) tokenBody.redirect_uri = redirectUri.trim();
+
   const tokenRes = await fetch(TRAKT_TOKEN_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret
-    })
+    body: JSON.stringify(tokenBody)
   });
 
-  if (!tokenRes.ok) {
-    throw createFailure('token_exchange_failed', `Trakt token exchange failed: ${tokenRes.status}`, tokenRes.status);
+  let tokenData = null;
+  try {
+    tokenData = await tokenRes.json();
+  } catch {
+    tokenData = null;
   }
 
-  const tokenData = await tokenRes.json();
+  if (!tokenRes.ok) {
+    const reason =
+      tokenData?.error_description || tokenData?.error || tokenData?.message || `HTTP ${tokenRes.status}`;
+    throw createFailure('token_exchange_failed', `Trakt token exchange failed: ${reason}`, tokenRes.status);
+  }
+
   if (!tokenData?.access_token) {
     throw createFailure('token_exchange_failed', 'Trakt token response missing access_token');
   }
