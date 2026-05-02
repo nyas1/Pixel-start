@@ -1,6 +1,13 @@
 const TRAKT_TOKEN_ENDPOINT = 'https://api.trakt.tv/oauth/token';
 const TRAKT_PLAYBACK_ENDPOINT = 'https://api.trakt.tv/sync/playback/episodes?extended=full,show';
 const USER_AGENT = 'TerminalTab/1.0 (+https://github.com/nyas1/terminal-tab)';
+const TOKEN_SKEW_SECONDS = 60;
+
+let tokenCache = {
+  accessToken: '',
+  clientId: '',
+  expiresAtMs: 0
+};
 
 const createFailure = (stage, message, statusCode) => {
   const error = new Error(message);
@@ -28,6 +35,15 @@ const getConfig = () => {
 
 const getAccessToken = async () => {
   const { clientId, clientSecret, refreshToken, redirectUri } = getConfig();
+  const now = Date.now();
+  if (
+    tokenCache.accessToken &&
+    tokenCache.clientId === clientId &&
+    tokenCache.expiresAtMs > now + TOKEN_SKEW_SECONDS * 1000
+  ) {
+    return { accessToken: tokenCache.accessToken, clientId };
+  }
+
   const tokenBody = {
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
@@ -74,6 +90,19 @@ const getAccessToken = async () => {
   if (!tokenData?.access_token) {
     throw createFailure('token_exchange_failed', 'Trakt token response missing access_token');
   }
+
+  const expiresIn = Number(tokenData?.expires_in);
+  const expiresAtMs =
+    Number.isFinite(expiresIn) && expiresIn > 0
+      ? now + expiresIn * 1000
+      : now + 55 * 60 * 1000;
+
+  tokenCache = {
+    accessToken: tokenData.access_token,
+    clientId,
+    expiresAtMs
+  };
+
   return { accessToken: tokenData.access_token, clientId };
 };
 

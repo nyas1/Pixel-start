@@ -102,6 +102,7 @@ export const AnilistWidget: React.FC = () => {
   const { anilistUsername, anilistShownLists, anilistLinkTarget } = useAppContext();
   const [state, setState] = useState<WidgetState>({ status: 'loading' });
   const [filter, setFilter] = useState<AnilistFilter>('CURRENT');
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -185,12 +186,12 @@ export const AnilistWidget: React.FC = () => {
 
     setState({ status: 'loading' });
     fetchEntries();
-    const timer = window.setInterval(fetchEntries, 120000);
+    const timer = window.setInterval(fetchEntries, 600000);
     return () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [anilistShownLists, anilistUsername]);
+  }, [anilistShownLists, anilistUsername, refreshNonce]);
 
   useEffect(() => {
     const selectedLists = (anilistShownLists.length ? anilistShownLists : ['CURRENT'])
@@ -287,5 +288,18 @@ export const AnilistWidget: React.FC = () => {
     );
   }, [anilistLinkTarget, anilistShownLists, filter, state]);
 
-  return <div className="h-full overflow-auto pr-1 custom-scrollbar">{content}</div>;
+  return (
+    <div className="h-full overflow-auto pr-1 custom-scrollbar">
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setRefreshNonce((v) => v + 1)}
+          className="border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] font-mono no-radius text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+        >
+          [REFRESH]
+        </button>
+      </div>
+      {content}
+    </div>
+  );
 };

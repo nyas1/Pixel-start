@@ -59,6 +59,7 @@ const episodeCode = (season: number | null, number: number | null): string => {
 export const TraktWidget: React.FC = () => {
   const { traktApiBaseUrl } = useAppContext();
   const [state, setState] = useState<WidgetState>({ status: 'loading' });
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -99,12 +100,12 @@ export const TraktWidget: React.FC = () => {
 
     setState({ status: 'loading' });
     fetchItems();
-    const timer = window.setInterval(fetchItems, 90000);
+    const timer = window.setInterval(fetchItems, 600000);
     return () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [traktApiBaseUrl]);
+  }, [refreshNonce, traktApiBaseUrl]);
 
   const content = useMemo(() => {
     if (state.status === 'loading') {
@@ -146,5 +147,18 @@ export const TraktWidget: React.FC = () => {
     );
   }, [state]);
 
-  return <div className="h-full overflow-auto pr-1 custom-scrollbar">{content}</div>;
+  return (
+    <div className="h-full overflow-auto pr-1 custom-scrollbar">
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setRefreshNonce((v) => v + 1)}
+          className="border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] font-mono no-radius text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+        >
+          [REFRESH]
+        </button>
+      </div>
+      {content}
+    </div>
+  );
 };
