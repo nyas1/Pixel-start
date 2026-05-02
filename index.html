@@ -9,6 +9,24 @@
     <meta name="theme-color" content="#0d0d0d">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://api.bigdatacloud.net https://api.open-meteo.com https://www.google.com ws://localhost:* ws://127.0.0.1:*; img-src 'self' data: https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
     <title>~</title>
+    <script>
+        (function () {
+            try {
+                var t = JSON.parse(localStorage.getItem('tui-tab-title') || '"~"');
+                if (typeof t === 'string') document.title = t.trim() || '~';
+            } catch (e) { document.title = '~'; }
+            try {
+                var href = JSON.parse(localStorage.getItem('tui-tab-favicon') || '""');
+                if (typeof href === 'string' && href.trim()) {
+                    var link = document.createElement('link');
+                    link.rel = 'icon';
+                    link.href = href.trim();
+                    link.setAttribute('data-tui-favicon', '1');
+                    document.head.appendChild(link);
+                }
+            } catch (e) { }
+        })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css" integrity="sha384-z7urxOoxW8XTxSu9GHfjF2IMOLNAJ5YBGVEiX0qaKfOzOhfH/HceecZevk7aFifJ" crossorigin="anonymous">
     <!-- apply saved theme before first paint -->
     <script>

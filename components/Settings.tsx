@@ -30,6 +30,8 @@ export const Settings: React.FC = () => {
         spotifyPulse, setSpotifyPulse,
         showWidgetTitles, setShowWidgetTitles,
         customFont, setCustomFont,
+        customTabTitle, setCustomTabTitle,
+        customTabFavicon, setCustomTabFavicon,
         reserveSettingsSpace, setReserveSettingsSpace,
         funOptions, setFunOptions,
         presets, handleSavePreset, handleLoadPreset, handleDeletePreset,
@@ -279,6 +281,10 @@ export const Settings: React.FC = () => {
                                     onToggleReserveSettings={() => setReserveSettingsSpace(!reserveSettingsSpace)}
                                     customFont={customFont}
                                     onCustomFontChange={setCustomFont}
+                                    customTabTitle={customTabTitle}
+                                    onCustomTabTitleChange={setCustomTabTitle}
+                                    customTabFavicon={customTabFavicon}
+                                    onCustomTabFaviconChange={setCustomTabFavicon}
                                     isLayoutLocked={isLayoutLocked}
                                     onToggleLayoutLock={() => setIsLayoutLocked(!isLayoutLocked)}
                                     onResetLayout={resetLayout}

@@ -101,6 +101,11 @@ interface AppContextType {
     setReserveSettingsSpace: (reserve: boolean) => void;
     customFont: string;
     setCustomFont: (font: string) => void;
+    customTabTitle: string;
+    setCustomTabTitle: (title: string) => void;
+    /** Data URL or https URL; empty restores default tab icon behavior. */
+    customTabFavicon: string;
+    setCustomTabFavicon: (href: string) => void;
     funOptions: FunOptions;
     setFunOptions: (options: FunOptions) => void;
     activeWidgets: Record<string, boolean>;
@@ -166,6 +171,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [showFavicons, setShowFavicons] = useStickyState<boolean>(true, 'tui-show-favicons');
     const [reserveSettingsSpace, setReserveSettingsSpace] = useStickyState<boolean>(true, 'tui-reserve-settings');
     const [customFont, setCustomFont] = useStickyState<string>('', 'tui-custom-font');
+    const [customTabTitle, setCustomTabTitle] = useStickyState<string>('~', 'tui-tab-title');
+    const [customTabFavicon, setCustomTabFavicon] = useStickyState<string>('', 'tui-tab-favicon');
 
     const [funOptionsRaw, setFunOptions] = useStickyState<FunOptions>(funDefaults, 'tui-fun-options-v3');
     
@@ -213,6 +220,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const allThemes = { ...THEMES, ...customThemes };
     const isCrt = currentTheme === 'crt';
+
+    useEffect(() => {
+        const title = (customTabTitle ?? '').trim() || '~';
+        document.title = title;
+
+        const url = (customTabFavicon ?? '').trim();
+        let link = document.querySelector('link[data-tui-favicon="1"]') as HTMLLinkElement | null;
+        if (!url) {
+            if (link) link.remove();
+            return;
+        }
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            link.setAttribute('data-tui-favicon', '1');
+            document.head.appendChild(link);
+        }
+        link.href = url;
+    }, [customTabTitle, customTabFavicon]);
 
     // settings-guard
     useEffect(() => {
@@ -361,6 +387,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setShowWidgetTitles(true);
         setShowFavicons(true);
         setCustomFont('');
+        setCustomTabTitle('~');
+        setCustomTabFavicon('');
         setStatsMode('minimal');
         setWeatherMode('standard');
         setWeatherShowHourlyForecast(true);
@@ -476,6 +504,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 showWidgetTitles,
                 showFavicons,
                 customFont,
+                customTabTitle,
+                customTabFavicon,
                 funOptions,
                 openInNewTab,
                 searchDefaultEngine,
@@ -508,6 +538,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (d.showWidgetTitles !== undefined) setShowWidgetTitles(d.showWidgetTitles);
         if (d.showFavicons !== undefined) setShowFavicons(d.showFavicons);
         if (d.customFont !== undefined) setCustomFont(d.customFont);
+        if (d.customTabTitle !== undefined) setCustomTabTitle(d.customTabTitle);
+        if (d.customTabFavicon !== undefined) setCustomTabFavicon(d.customTabFavicon);
         if (d.funOptions) setFunOptions(d.funOptions);
         if (d.openInNewTab !== undefined) setOpenInNewTab(d.openInNewTab);
         if (d.searchDefaultEngine) setSearchDefaultEngine(d.searchDefaultEngine);
@@ -545,6 +577,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         showFavicons, setShowFavicons,
         reserveSettingsSpace, setReserveSettingsSpace,
         customFont, setCustomFont,
+        customTabTitle, setCustomTabTitle,
+        customTabFavicon, setCustomTabFavicon,
         funOptions, setFunOptions,
         activeWidgets, setActiveWidgets,
         spotifyPixelAlbumArt, setSpotifyPixelAlbumArt,

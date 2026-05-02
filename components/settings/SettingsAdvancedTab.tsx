@@ -3,6 +3,93 @@ import { AsciiSlider } from '../AsciiSlider';
 import { SEARCH_ENGINES } from '../../constants';
 import { SearchEngineId } from '../../types';
 
+const FAVICON_FILE_INPUT_MAX = 15 * 1024 * 1024;
+/** Keeps data URLs small enough for localStorage alongside other settings */
+const FAVICON_DATA_URL_MAX_LEN = 280_000;
+
+function isProbablyImageFile(file: File): boolean {
+    if (file.type.startsWith('image/')) return true;
+    return /\.(png|jpe?g|gif|webp|bmp|avif|ico)$/i.test(file.name);
+}
+
+async function compressImageFileToFaviconDataUrl(file: File): Promise<string> {
+    let bitmap: ImageBitmap | null = null;
+    let blobUrl: string | null = null;
+    let img: HTMLImageElement | null = null;
+
+    try {
+        try {
+            bitmap = await createImageBitmap(file);
+        } catch {
+            blobUrl = URL.createObjectURL(file);
+            try {
+                img = await new Promise<HTMLImageElement>((resolve, reject) => {
+                    const el = new Image();
+                    el.onload = () => resolve(el);
+                    el.onerror = () => reject(new Error('load'));
+                    el.src = blobUrl!;
+                });
+            } catch {
+                throw new Error('load');
+            }
+        }
+
+        const nw = bitmap ? bitmap.width : img!.naturalWidth;
+        const nh = bitmap ? bitmap.height : img!.naturalHeight;
+        if (!nw || !nh) throw new Error('dims');
+
+        const paint = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+            if (bitmap) ctx.drawImage(bitmap, 0, 0, w, h);
+            else ctx.drawImage(img!, 0, 0, w, h);
+        };
+
+        const encode = (maxDim: number, quality: number) => {
+            let w = nw;
+            let h = nh;
+            if (w > maxDim || h > maxDim) {
+                if (w >= h) {
+                    h = Math.max(1, Math.round((h * maxDim) / w));
+                    w = maxDim;
+                } else {
+                    w = Math.max(1, Math.round((w * maxDim) / h));
+                    h = maxDim;
+                }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('ctx');
+            paint(ctx, w, h);
+            let data = '';
+            try {
+                const webp = canvas.toDataURL('image/webp', quality);
+                if (webp.length > 12 && webp.startsWith('data:image/webp')) data = webp;
+            } catch {
+                /* WebP unsupported */
+            }
+            if (!data) data = canvas.toDataURL('image/jpeg', quality);
+            return data;
+        };
+
+        let maxDim = 128;
+        let quality = 0.82;
+        let data = encode(maxDim, quality);
+        let guard = 0;
+        while (data.length > FAVICON_DATA_URL_MAX_LEN && maxDim > 24 && guard < 12) {
+            maxDim = Math.max(24, Math.floor(maxDim * 0.72));
+            quality = Math.max(0.5, quality - 0.08);
+            data = encode(maxDim, quality);
+            guard += 1;
+        }
+        if (data.length > FAVICON_DATA_URL_MAX_LEN) throw new Error('toobig');
+        return data;
+    } finally {
+        bitmap?.close();
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+    }
+}
+
 interface SettingsAdvancedTabProps {
     showWidgetTitles: boolean;
     onToggleWidgetTitles: () => void;
@@ -12,6 +99,10 @@ interface SettingsAdvancedTabProps {
     onToggleReserveSettings: () => void;
     customFont: string;
     onCustomFontChange: (font: string) => void;
+    customTabTitle: string;
+    onCustomTabTitleChange: (title: string) => void;
+    customTabFavicon: string;
+    onCustomTabFaviconChange: (href: string) => void;
     isLayoutLocked: boolean;
     onToggleLayoutLock: () => void;
     onResetLayout: () => void;
@@ -72,6 +163,10 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onToggleReserveSettings,
     customFont,
     onCustomFontChange,
+    customTabTitle,
+    onCustomTabTitleChange,
+    customTabFavicon,
+    onCustomTabFaviconChange,
     isLayoutLocked,
     onToggleLayoutLock,
     onResetLayout,
@@ -111,6 +206,25 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onToggleSpotifyPulse,
 }) => {
     const clickTimeoutsRef = React.useRef<Record<string, number>>({});
+    const faviconFileRef = React.useRef<HTMLInputElement>(null);
+
+    const onFaviconFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file || !isProbablyImageFile(file)) return;
+        if (file.size > FAVICON_FILE_INPUT_MAX) {
+            window.alert('Image too large to process in the browser (max 15MB).');
+            return;
+        }
+        void (async () => {
+            try {
+                const data = await compressImageFileToFaviconDataUrl(file);
+                onCustomTabFaviconChange(data);
+            } catch {
+                window.alert('Could not process this image. Try PNG, JPG, WebP, or paste a URL instead.');
+            }
+        })();
+    };
 
     const handleEngineClick = (engineId: SearchEngineId, clickDetail: number) => {
         const key = String(engineId);
@@ -157,16 +271,6 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                         <span className="text-[var(--color-fg)] text-sm group-hover:text-[var(--color-fg)]">Reserve Settings Space</span>
                     </div>
 
-                    <div
-                        onClick={onToggleShowFavicons}
-                        className="flex items-center gap-2 cursor-pointer select-none group mt-3"
-                    >
-                        <span className="font-mono text-[var(--color-accent)] font-bold">
-                            {showFavicons ? '[x]' : '[ ]'}
-                        </span>
-                        <span className="text-[var(--color-fg)] text-sm group-hover:text-[var(--color-fg)]">Show Favicons</span>
-                    </div>
-
                     <div className="flex flex-col gap-1 mt-2">
                         <span className="text-[var(--color-muted)] text-xs">Custom Font Family</span>
                         <input
@@ -177,6 +281,65 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                             onChange={(e) => onCustomFontChange(e.target.value)}
                         />
                         <span className="text-[var(--color-muted)] text-[10px] opacity-60">Press enter or click away to apply.</span>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mt-2 border-t border-[var(--color-border)] pt-3 border-dashed">
+                        <span className="text-[var(--color-muted)] text-xs">Tab title</span>
+                        <input
+                            type="text"
+                            className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans"
+                            value={customTabTitle}
+                            onChange={(e) => onCustomTabTitleChange(e.target.value)}
+                            placeholder="~"
+                        />
+                        <span className="text-[var(--color-muted)] text-[10px] opacity-60">Empty defaults to ~.</span>
+                    </div>
+
+                    <div className="mt-2 flex flex-col gap-1">
+                        <span className="text-[var(--color-muted)] text-xs">Tab favicon</span>
+                        <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
+                            <input
+                                type="text"
+                                className="min-w-[8rem] flex-1 shrink bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none select-text font-sans"
+                                value={customTabFavicon.startsWith('data:') ? '' : customTabFavicon}
+                                onChange={(e) => onCustomTabFaviconChange(e.target.value)}
+                                placeholder={
+                                    customTabFavicon.startsWith('data:')
+                                        ? 'Local image — URL or clear'
+                                        : 'https://… (optional)'
+                                }
+                            />
+                            <input
+                                ref={faviconFileRef}
+                                type="file"
+                                accept="image/*,.ico,.png,.jpg,.jpeg,.webp,.gif,.bmp,.avif"
+                                className="hidden"
+                                onChange={onFaviconFile}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => faviconFileRef.current?.click()}
+                                className="shrink-0 whitespace-nowrap border border-[var(--color-border)] px-2 py-1 text-xs font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius"
+                            >
+                                [ CHOOSE IMAGE ]
+                            </button>
+                            {(customTabFavicon.startsWith('data:') || customTabFavicon.trim().length > 0) && (
+                                <button
+                                    type="button"
+                                    onClick={() => onCustomTabFaviconChange('')}
+                                    className="shrink-0 whitespace-nowrap border border-[var(--color-border)] px-2 py-1 text-xs font-mono text-[var(--color-muted)] hover:border-red-500 hover:text-red-500 no-radius"
+                                >
+                                    [ CLEAR ]
+                                </button>
+                            )}
+                            {customTabFavicon.startsWith('data:') ? (
+                                <img
+                                    src={customTabFavicon}
+                                    alt=""
+                                    className="h-8 w-8 shrink-0 border border-[var(--color-border)] object-contain"
+                                />
+                            ) : null}
+                        </div>
                     </div>
 
                 </div>
@@ -271,7 +434,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
 
                     <div
                         onClick={onToggleWeatherHourlyForecast}
-                        className="flex items-center gap-2 cursor-pointer mt-2 border-t border-[var(--color-border)] pt-2 border-dashed select-none group"
+                        className="flex items-center gap-2 cursor-pointer select-none group"
                     >
                         <span className="font-mono text-[var(--color-accent)] font-bold">
                             {weatherShowHourlyForecast ? '[x]' : '[ ]'}
@@ -313,7 +476,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                                 <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">24-hour</span>
                             </div>
                         </div>
-                        <div onClick={onToggleClockShowSeconds} className="flex items-center gap-2 cursor-pointer select-none group border-t border-[var(--color-border)] pt-2 border-dashed">
+                        <div onClick={onToggleClockShowSeconds} className="flex items-center gap-2 cursor-pointer select-none group">
                             <span className="font-mono text-[var(--color-accent)] font-bold">
                                 {clockShowSeconds ? '[x]' : '[ ]'}
                             </span>
@@ -321,7 +484,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 border-t border-[var(--color-border)] pt-2 border-dashed">
+                    <div className="flex flex-col gap-2">
                         <span className="text-[var(--color-muted)] text-xs">Date</span>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <div onClick={() => onDateFormatChange('long')} className="flex items-center gap-2 cursor-pointer select-none group">
@@ -337,7 +500,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                                 <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Short (dd/mm/yy)</span>
                             </div>
                         </div>
-                        <div onClick={onToggleClockShowDay} className="flex items-center gap-2 cursor-pointer select-none group border-t border-[var(--color-border)] pt-2 border-dashed">
+                        <div onClick={onToggleClockShowDay} className="flex items-center gap-2 cursor-pointer select-none group">
                             <span className="font-mono text-[var(--color-accent)] font-bold">
                                 {clockShowDay ? '[x]' : '[ ]'}
                             </span>
@@ -348,12 +511,26 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             </div>
 
             <div className="border border-[var(--color-border)] p-4">
-                <h3 className="text-[var(--color-accent)] font-bold mb-2">Link Behavior</h3>
-                <div onClick={() => onToggleOpenInNewTab?.()} className="flex items-center gap-2 cursor-pointer select-none group">
-                    <span className="font-mono text-[var(--color-accent)] font-bold">
-                        {openInNewTab ? '[x]' : '[ ]'}
-                    </span>
-                    <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Open Links in New Tab</span>
+                <h3 className="text-[var(--color-accent)] font-bold mb-2">Link Widget</h3>
+                <div className="flex flex-col gap-3">
+                    <div
+                        onClick={onToggleShowFavicons}
+                        className="flex items-center gap-2 cursor-pointer select-none group"
+                    >
+                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                            {showFavicons ? '[x]' : '[ ]'}
+                        </span>
+                        <span className="text-[var(--color-fg)] text-sm group-hover:text-[var(--color-fg)]">Show Favicons</span>
+                    </div>
+                    <div
+                        onClick={() => onToggleOpenInNewTab?.()}
+                        className="flex items-center gap-2 cursor-pointer select-none group"
+                    >
+                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                            {openInNewTab ? '[x]' : '[ ]'}
+                        </span>
+                        <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Open Links in New Tab</span>
+                    </div>
                 </div>
             </div>
 
