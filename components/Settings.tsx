@@ -34,7 +34,6 @@ export const Settings: React.FC = () => {
         anilistUsername, setAnilistUsername,
         anilistShownLists, setAnilistShownLists,
         anilistLinkTarget, setAnilistLinkTarget,
-        traktApiBaseUrl, setTraktApiBaseUrl,
         showWidgetTitles, setShowWidgetTitles,
         customFont, setCustomFont,
         customTabTitle, setCustomTabTitle,
@@ -342,8 +341,6 @@ export const Settings: React.FC = () => {
                                     onAnilistShownListsChange={setAnilistShownLists}
                                     anilistLinkTarget={anilistLinkTarget}
                                     onAnilistLinkTargetChange={setAnilistLinkTarget}
-                                    traktApiBaseUrl={traktApiBaseUrl}
-                                    onTraktApiBaseUrlChange={setTraktApiBaseUrl}
                                 />
                             )}
 

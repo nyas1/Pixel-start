@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SyncIcon } from '@primer/octicons-react';
 import { useAppContext } from '../contexts/AppContext';
 
 type AnilistEntry = {
@@ -26,7 +25,7 @@ type WidgetState =
   | { status: 'success'; items: AnilistEntry[] };
 
 const ANILIST_ENDPOINT = 'https://graphql.anilist.co';
-const MAX_SHOWN_LISTS = 2;
+const MAX_SHOWN_LISTS = 3;
 const LIST_LABELS: Record<AnilistListStatus, string> = {
   CURRENT: 'Watching',
   COMPLETED: 'Completed',
@@ -103,7 +102,6 @@ export const AnilistWidget: React.FC = () => {
   const { anilistUsername, anilistShownLists, anilistLinkTarget } = useAppContext();
   const [state, setState] = useState<WidgetState>({ status: 'loading' });
   const [filter, setFilter] = useState<AnilistFilter>('CURRENT');
-  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -187,12 +185,12 @@ export const AnilistWidget: React.FC = () => {
 
     setState({ status: 'loading' });
     fetchEntries();
-    const timer = window.setInterval(fetchEntries, 600000);
+    const timer = window.setInterval(fetchEntries, 120000);
     return () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [anilistShownLists, anilistUsername, refreshNonce]);
+  }, [anilistShownLists, anilistUsername]);
 
   useEffect(() => {
     const selectedLists = (anilistShownLists.length ? anilistShownLists : ['CURRENT'])
@@ -228,32 +226,21 @@ export const AnilistWidget: React.FC = () => {
 
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 flex-nowrap overflow-x-auto">
-            {(selectedLists as AnilistFilter[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setFilter(option)}
-                className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${
-                  filter === option
-                    ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
-                    : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-fg)]'
-                }`}
-              >
-                [{LIST_LABELS[option].toUpperCase()}]
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setRefreshNonce((v) => v + 1)}
-            aria-label="Refresh AniList"
-            title="Refresh"
-            className="shrink-0 border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] font-mono no-radius text-[var(--color-muted)] hover:text-[var(--color-fg)]"
-          >
-            <SyncIcon size={12} />
-          </button>
+        <div className="flex items-center gap-1">
+          {(selectedLists as AnilistFilter[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setFilter(option)}
+              className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${
+                filter === option
+                  ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                  : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-fg)]'
+              }`}
+            >
+              [{LIST_LABELS[option].toUpperCase()}]
+            </button>
+          ))}
         </div>
         <ul className="space-y-2">
           {visibleItems.map((entry) => (
@@ -300,9 +287,5 @@ export const AnilistWidget: React.FC = () => {
     );
   }, [anilistLinkTarget, anilistShownLists, filter, state]);
 
-  return (
-    <div className="h-full overflow-auto pr-1 custom-scrollbar">
-      {content}
-    </div>
-  );
+  return <div className="h-full overflow-auto pr-1 custom-scrollbar">{content}</div>;
 };
