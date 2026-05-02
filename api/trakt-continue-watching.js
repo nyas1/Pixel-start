@@ -41,16 +41,26 @@ const getAccessToken = async () => {
     body: JSON.stringify(tokenBody)
   });
 
+  let rawText = '';
+  try {
+    rawText = await tokenRes.text();
+  } catch {
+    rawText = '';
+  }
+
   let tokenData = null;
   try {
-    tokenData = await tokenRes.json();
+    tokenData = rawText ? JSON.parse(rawText) : null;
   } catch {
     tokenData = null;
   }
 
   if (!tokenRes.ok) {
     const reason =
-      tokenData?.error_description || tokenData?.error || tokenData?.message || `HTTP ${tokenRes.status}`;
+      tokenData?.error_description ||
+      tokenData?.error ||
+      tokenData?.message ||
+      (rawText ? rawText.slice(0, 200) : `HTTP ${tokenRes.status}`);
     throw createFailure('token_exchange_failed', `Trakt token exchange failed: ${reason}`, tokenRes.status);
   }
 
