@@ -4,6 +4,8 @@ import {
     TRAKT_DEVICE_STORAGE_KEY,
     readTraktJson,
     writeTraktJson,
+    traktApiUrl,
+    traktOAuthPostHeaders,
     type TraktDeviceCodeState,
     type TraktStoredAuth
 } from '../../utils/traktClient';
@@ -173,6 +175,10 @@ interface SettingsAdvancedTabProps {
     onAnilistLinkTargetChange: (target: 'anilist' | 'miruro') => void;
     tmdbApiKey: string;
     onTmdbApiKeyChange: (apiKey: string) => void;
+    traktClientId: string;
+    onTraktClientIdChange: (value: string) => void;
+    traktClientSecret: string;
+    onTraktClientSecretChange: (value: string) => void;
 
 }
 
@@ -240,6 +246,10 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onAnilistLinkTargetChange,
     tmdbApiKey,
     onTmdbApiKeyChange,
+    traktClientId,
+    onTraktClientIdChange,
+    traktClientSecret,
+    onTraktClientSecretChange,
 }) => {
     const clickTimeoutsRef = React.useRef<Record<string, number>>({});
     const faviconFileRef = React.useRef<HTMLInputElement>(null);
@@ -280,17 +290,22 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
 
     const handleTraktConnect = useCallback(async () => {
         try {
-            const res = await fetch('/api/trakt-auth?action=device-code', {
+            const cid = traktClientId.trim();
+            const sec = traktClientSecret.trim();
+            if (!cid || !sec) {
+                setTraktAuthMessage('Enter your Trakt app Client ID and Client Secret below (stored locally only).');
+                return;
+            }
+            const res = await fetch(traktApiUrl('/oauth/device/code'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
+                headers: traktOAuthPostHeaders(cid),
+                body: JSON.stringify({ client_id: cid })
             });
+            const body = await res.json().catch(() => ({}));
             if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
                 const extra = body?.error_description || body?.error || body?.message || '';
                 throw new Error(`device auth failed (${res.status})${extra ? `: ${String(extra)}` : ''}`);
             }
-            const body = await res.json();
             const nextState: TraktDeviceCodeState = {
                 deviceCode: String(body?.device_code || ''),
                 userCode: String(body?.user_code || ''),
@@ -309,7 +324,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             const msg = error instanceof Error ? error.message : 'unknown error';
             setTraktAuthMessage(`Trakt: ${msg}`);
         }
-    }, []);
+    }, [traktClientId, traktClientSecret]);
 
     useEffect(() => {
         if (!traktDeviceState) return;
@@ -326,49 +341,59 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
 
         const runPoll = async () => {
             try {
-                const res = await fetch('/api/trakt-auth?action=device-token', {
+                const cid = traktClientId.trim();
+                const sec = traktClientSecret.trim();
+                if (!cid || !sec) {
+                    if (!cancelled) setTraktAuthMessage('Trakt: Client ID / Secret missing — enter them in Settings to finish connecting.');
+                    return;
+                }
+
+                const res = await fetch(traktApiUrl('/oauth/device/token'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: traktOAuthPostHeaders(cid),
                     body: JSON.stringify({
-                        deviceCode: traktDeviceState.deviceCode
+                        code: traktDeviceState.deviceCode,
+                        client_id: cid,
+                        client_secret: sec
                     })
                 });
                 if (cancelled) return;
 
-                if (!res.ok) {
-                    const body = await res.json().catch(() => ({}));
-                    const extra = body?.error_description || body?.error || body?.message || '';
-                    throw new Error(`device token error (${res.status})${extra ? `: ${String(extra)}` : ''}`);
-                }
+                const body = await res.json().catch(() => ({}));
 
-                const body = await res.json();
-                const status = String(body?.status || '');
-                if (status === 'authorized') {
+                if (res.ok && body?.access_token && body?.refresh_token) {
                     const auth: TraktStoredAuth = {
-                        accessToken: String(body?.access_token || ''),
-                        refreshToken: String(body?.refresh_token || ''),
+                        accessToken: String(body.access_token || ''),
+                        refreshToken: String(body.refresh_token || ''),
                         expiresAt: Date.now() + (Number(body?.expires_in || 3600) * 1000),
-                        createdAt: Date.now()
+                        createdAt: Date.now(),
+                        oauthClientId: cid
                     };
-                    if (!auth.accessToken || !auth.refreshToken) {
-                        throw new Error('invalid token response');
-                    }
                     writeTraktJson(TRAKT_AUTH_STORAGE_KEY, auth);
                     writeTraktJson(TRAKT_DEVICE_STORAGE_KEY, null);
                     setTraktDeviceState(null);
                     setTraktAuthMessage('Trakt connected. You can close settings.');
                     return;
                 }
-                if (status === 'pending') {
+
+                const errorCode = String(body?.error || '');
+                if (errorCode === 'authorization_pending' || errorCode === 'slow_down') {
                     return;
                 }
-                if (status === 'denied') {
+                if (errorCode === 'expired_token' || errorCode === 'access_denied') {
                     writeTraktJson(TRAKT_DEVICE_STORAGE_KEY, null);
                     setTraktDeviceState(null);
+                    const errDesc = body?.error_description;
+                    if (!cancelled) {
+                        setTraktAuthMessage(
+                            errDesc ? `Trakt: ${errorCode}: ${String(errDesc)}` : `Trakt: ${errorCode}`
+                        );
+                    }
+                    return;
                 }
-                const errCode = String(body?.error || body?.message || 'device token error');
-                const errDesc = body?.error_description;
-                throw new Error(errDesc ? `${errCode}: ${String(errDesc)}` : errCode);
+
+                const extra = body?.error_description || body?.error || body?.message || '';
+                throw new Error(`device token error (${res.status})${extra ? `: ${String(extra)}` : ''}`);
             } catch (error) {
                 if (cancelled) return;
                 const msg = error instanceof Error ? error.message : 'unknown error';
@@ -383,7 +408,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             cancelled = true;
             window.clearInterval(t);
         };
-    }, [traktDeviceState]);
+    }, [traktDeviceState, traktClientId, traktClientSecret]);
 
     const onFaviconFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -905,8 +930,31 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                     <h3 className="text-[var(--color-accent)] font-bold mb-2">Trakt Widget</h3>
                     <div className="flex flex-col gap-3">
                         <p className="text-[10px] font-mono text-[var(--color-muted)]">
-                            Server auth enabled (TRAKT_CLIENT_ID / TRAKT_CLIENT_SECRET on Vercel).
+                            Trakt uses your browser only: api.trakt.tv blocks many datacenter IPs (Cloudflare), so OAuth and API calls cannot run on Vercel. Paste your Trakt app credentials below; they are kept in local storage and used only from this device.
                         </p>
+                        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
+                            <span className="text-[var(--color-muted)] text-xs">Trakt Client ID</span>
+                            <input
+                                type="text"
+                                autoComplete="off"
+                                spellCheck={false}
+                                placeholder="from trakt.tv/oauth/applications"
+                                className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans"
+                                value={traktClientId}
+                                onChange={(e) => onTraktClientIdChange(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
+                            <span className="text-[var(--color-muted)] text-xs">Trakt Client Secret</span>
+                            <input
+                                type="password"
+                                autoComplete="off"
+                                placeholder="same Trakt app; stored locally"
+                                className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans"
+                                value={traktClientSecret}
+                                onChange={(e) => onTraktClientSecretChange(e.target.value)}
+                            />
+                        </div>
                         <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
                             <span className="text-[var(--color-muted)] text-xs">TMDB API Token (v4 Read Access Token)</span>
                             <input

@@ -35,6 +35,8 @@ export const Settings: React.FC = () => {
         anilistShownLists, setAnilistShownLists,
         anilistLinkTarget, setAnilistLinkTarget,
         tmdbApiKey, setTmdbApiKey,
+        traktClientId, setTraktClientId,
+        traktClientSecret, setTraktClientSecret,
         showWidgetTitles, setShowWidgetTitles,
         customFont, setCustomFont,
         customTabTitle, setCustomTabTitle,
@@ -344,6 +346,10 @@ export const Settings: React.FC = () => {
                                     onAnilistLinkTargetChange={setAnilistLinkTarget}
                                     tmdbApiKey={tmdbApiKey}
                                     onTmdbApiKeyChange={setTmdbApiKey}
+                                    traktClientId={traktClientId}
+                                    onTraktClientIdChange={setTraktClientId}
+                                    traktClientSecret={traktClientSecret}
+                                    onTraktClientSecretChange={setTraktClientSecret}
                                 />
                             )}
 

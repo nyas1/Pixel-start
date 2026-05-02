@@ -22,6 +22,13 @@ export const getTraktApiBase = (): string =>
 
 export const trimTraktSlash = (s: string): string => s.replace(/\/+$/, '');
 
+/** Full URL for a Trakt API path (uses dev `/trakt-api` proxy on localhost). */
+export const traktApiUrl = (path: string): string => {
+  const base = trimTraktSlash(getTraktApiBase());
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${p}`;
+};
+
 export type TraktStoredAuth = {
   accessToken: string;
   refreshToken: string;
@@ -51,6 +58,11 @@ export const traktAuthedHeaders = (clientId: string, accessToken: string): Heade
     Authorization: `Bearer ${tok}`
   };
 };
+
+export const traktGetJson = (clientId: string, accessToken: string, path: string): Promise<Response> =>
+  fetch(traktApiUrl(path), {
+    headers: traktAuthedHeaders(clientId, accessToken)
+  });
 
 /** Parse Trakt JSON error body for clearer UI messages (uses cloned response). */
 export async function traktErrorSuffix(res: Response): Promise<string> {

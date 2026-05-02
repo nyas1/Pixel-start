@@ -4,6 +4,9 @@ import {
   TRAKT_AUTH_STORAGE_KEY,
   readTraktJson,
   writeTraktJson,
+  traktApiUrl,
+  traktGetJson,
+  traktOAuthPostHeaders,
   type TraktStoredAuth
 } from '../utils/traktClient';
 
@@ -268,18 +271,7 @@ const readErrorSuffix = async (res: Response): Promise<string> => {
   }
 };
 
-async function callTraktProxy(path: string, accessToken: string): Promise<Response> {
-  return fetch('/api/trakt-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      path,
-      accessToken: accessToken.trim()
-    })
-  });
-}
-
-async function getRefreshedAuth(): Promise<TraktStoredAuth> {
+async function getRefreshedAuth(clientId: string, clientSecret: string): Promise<TraktStoredAuth> {
   const auth = readTraktJson<TraktStoredAuth>(TRAKT_AUTH_STORAGE_KEY);
   if (!auth?.accessToken || !auth?.refreshToken) {
     throw new Error('Connect Trakt first.');
@@ -290,11 +282,25 @@ async function getRefreshedAuth(): Promise<TraktStoredAuth> {
     return auth;
   }
 
-  const res = await fetch('/api/trakt-auth?action=refresh', {
+  const cid = clientId.trim();
+  const sec = clientSecret.trim();
+  if (!cid || !sec) {
+    throw new Error('Add Trakt Client ID and Client Secret in Settings (Advanced).');
+  }
+  if (auth.oauthClientId && auth.oauthClientId !== cid) {
+    writeTraktJson(TRAKT_AUTH_STORAGE_KEY, null);
+    throw new Error('Trakt Client ID changed. Disconnect and reconnect Trakt in Settings.');
+  }
+
+  const res = await fetch(traktApiUrl('/oauth/token'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: traktOAuthPostHeaders(cid),
     body: JSON.stringify({
-      refreshToken: auth.refreshToken.trim()
+      grant_type: 'refresh_token',
+      refresh_token: auth.refreshToken.trim(),
+      client_id: cid,
+      client_secret: sec,
+      redirect_uri: 'urn:ietf:wg:oauth:2.0:oob'
     })
   });
 
@@ -309,7 +315,8 @@ async function getRefreshedAuth(): Promise<TraktStoredAuth> {
     accessToken: String(body?.access_token || '').trim(),
     refreshToken: String(body?.refresh_token || auth.refreshToken || '').trim(),
     expiresAt: Date.now() + (Number(body?.expires_in || 3600) * 1000),
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    oauthClientId: cid
   };
 
   if (!refreshed.accessToken || !refreshed.refreshToken) {
@@ -322,8 +329,8 @@ async function getRefreshedAuth(): Promise<TraktStoredAuth> {
   return refreshed;
 }
 
-async function fetchWatchedProgress(token: string): Promise<TraktWatchedItem[]> {
-  const res = await callTraktProxy('/users/me/watched/shows?extended=noseasons', token);
+async function fetchWatchedProgress(clientId: string, token: string): Promise<TraktWatchedItem[]> {
+  const res = await traktGetJson(clientId, token, '/users/me/watched/shows?extended=noseasons');
   if (!res.ok) {
     const sfx = await readErrorSuffix(res);
     throw new Error(`Trakt watch data error (${res.status})${sfx}`);
@@ -332,8 +339,8 @@ async function fetchWatchedProgress(token: string): Promise<TraktWatchedItem[]> 
   return toWatchedItems(body);
 }
 
-async function fetchNowWatching(token: string): Promise<TraktNowWatching | null> {
-  const res = await callTraktProxy('/users/me/watching', token);
+async function fetchNowWatching(clientId: string, token: string): Promise<TraktNowWatching | null> {
+  const res = await traktGetJson(clientId, token, '/users/me/watching');
   if (res.status === 204) return null;
   if (!res.ok) {
     const sfx = await readErrorSuffix(res);
@@ -343,10 +350,10 @@ async function fetchNowWatching(token: string): Promise<TraktNowWatching | null>
   return toNowWatching(body);
 }
 
-async function fetchContinueWatching(token: string): Promise<TraktContinueItem[]> {
+async function fetchContinueWatching(clientId: string, token: string): Promise<TraktContinueItem[]> {
   const primary = '/users/me/progress/watched?hidden=false&specials=false&count_specials=false';
 
-  let res = await callTraktProxy(primary, token);
+  let res = await traktGetJson(clientId, token, primary);
   if (res.ok) {
     const body = await res.json();
     return toContinueItems(body);
@@ -360,7 +367,7 @@ async function fetchContinueWatching(token: string): Promise<TraktContinueItem[]
   const fallbacks = ['/sync/playback/episodes', '/sync/playback'];
   let lastSfx = primarySfx;
   for (const url of fallbacks) {
-    res = await callTraktProxy(url, token);
+    res = await traktGetJson(clientId, token, url);
     if (res.ok) {
       const body = await res.json();
       return toContinueItemsFromPlayback(body);
@@ -370,11 +377,11 @@ async function fetchContinueWatching(token: string): Promise<TraktContinueItem[]
   throw new Error(`Trakt continue watching error (${res.status})${lastSfx}`);
 }
 
-async function fetchPlaybackNowProgress(token: string): Promise<TraktContinueItem[]> {
+async function fetchPlaybackNowProgress(clientId: string, token: string): Promise<TraktContinueItem[]> {
   const endpoints = ['/sync/playback/episodes', '/sync/playback'];
   for (const url of endpoints) {
     try {
-      const res = await callTraktProxy(url, token);
+      const res = await traktGetJson(clientId, token, url);
       if (!res.ok) continue;
       const body = await res.json();
       const items = toContinueItemsFromPlayback(body);
@@ -424,13 +431,17 @@ async function fetchTmdbPosterMap(tmdbIds: number[], tmdbToken: string): Promise
   return Object.fromEntries(entries);
 }
 
-async function fetchTraktPosterMap(token: string, slugs: string[]): Promise<Record<string, string>> {
+async function fetchTraktPosterMap(clientId: string, token: string, slugs: string[]): Promise<Record<string, string>> {
   const unique = [...new Set(slugs.filter(Boolean))].slice(0, 10);
   if (unique.length === 0) return {};
   const entries = await Promise.all(
     unique.map(async (slug) => {
       try {
-        const res = await callTraktProxy(`/shows/${encodeURIComponent(slug)}?extended=full,images`, token);
+        const res = await traktGetJson(
+          clientId,
+          token,
+          `/shows/${encodeURIComponent(slug)}?extended=full,images`
+        );
         if (!res.ok) return [slug, ''] as const;
         const body = await res.json();
         const poster =
@@ -450,7 +461,7 @@ async function fetchTraktPosterMap(token: string, slugs: string[]): Promise<Reco
 }
 
 export const TraktWidget: React.FC = () => {
-  const { tmdbApiKey } = useAppContext();
+  const { tmdbApiKey, traktClientId, traktClientSecret } = useAppContext();
   const [state, setState] = useState<WidgetState>({
     status: 'idle',
     message: 'Connect Trakt in Settings -> Advanced -> Trakt Widget.'
@@ -501,14 +512,33 @@ export const TraktWidget: React.FC = () => {
         return;
       }
 
+      const cid = traktClientId.trim();
+      const sec = traktClientSecret.trim();
+      if (!cid || !sec) {
+        if (!alive) return;
+        setState({
+          status: 'error',
+          message: 'Trakt needs Client ID and Client Secret in Settings (Advanced). They stay in local storage on this device.'
+        });
+        return;
+      }
+      if (stored.oauthClientId && stored.oauthClientId !== cid) {
+        if (!alive) return;
+        setState({
+          status: 'error',
+          message: 'Trakt Client ID does not match this connection. Disconnect in Settings and connect again.'
+        });
+        return;
+      }
+
       setState({ status: 'loading' });
       try {
-        const auth = await getRefreshedAuth();
+        const auth = await getRefreshedAuth(cid, sec);
         const [nowWatchingBase, continueItemsBase, fallbackItemsBase, playbackItemsBase] = await Promise.all([
-          fetchNowWatching(auth.accessToken),
-          fetchContinueWatching(auth.accessToken),
-          fetchWatchedProgress(auth.accessToken),
-          fetchPlaybackNowProgress(auth.accessToken)
+          fetchNowWatching(cid, auth.accessToken),
+          fetchContinueWatching(cid, auth.accessToken),
+          fetchWatchedProgress(cid, auth.accessToken),
+          fetchPlaybackNowProgress(cid, auth.accessToken)
         ]);
         const tmdbBySlug: Record<string, number> = {};
         if (nowWatchingBase?.tmdbId) tmdbBySlug[nowWatchingBase.showSlug] = nowWatchingBase.tmdbId;
@@ -524,7 +554,7 @@ export const TraktWidget: React.FC = () => {
             Object.values(tmdbBySlug),
             tmdbApiKey || String((import.meta as any).env?.VITE_TMDB_API_KEY || '')
           ),
-          fetchTraktPosterMap(auth.accessToken, [
+          fetchTraktPosterMap(cid, auth.accessToken, [
             ...(nowWatchingBase?.showSlug ? [nowWatchingBase.showSlug] : []),
             ...continueItemsBase.map((item) => item.showSlug),
             ...fallbackItemsBase.map((item) => item.showSlug)
@@ -585,7 +615,7 @@ export const TraktWidget: React.FC = () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [tmdbApiKey, manualRefresh]);
+  }, [tmdbApiKey, manualRefresh, traktClientId, traktClientSecret]);
 
   const content = useMemo(() => {
     if (state.status === 'loading') {
