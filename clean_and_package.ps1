@@ -23,10 +23,10 @@ python package_addon.py
 python package_source.py
 
 Write-Host "Renaming Artifacts..."
-if (Test-Path "terminal-tab-v2.3.xpi") {
-    Move-Item "terminal-tab-v2.3.xpi" "terminal-tab-CLEAN-v2.3.xpi" -Force
+if (Test-Path "terminal-tab-1.0.1.xpi") {
+    Move-Item "terminal-tab-1.0.1.xpi" "terminal-tab-CLEAN-1.0.1.xpi" -Force
 }
-if (Test-Path "terminal-tab-source-v2.3.zip") {
-    Move-Item "terminal-tab-source-v2.3.zip" "terminal-tab-source-CLEAN-v2.3.zip" -Force
+if (Test-Path "terminal-tab-source-1.0.1.zip") {
+    Move-Item "terminal-tab-source-1.0.1.zip" "terminal-tab-source-CLEAN-1.0.1.zip" -Force
 }
 Write-Host "Done."

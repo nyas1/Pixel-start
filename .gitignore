@@ -24,5 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Packaged extension (build locally)
+# Packaged extension / source archive (build locally)
 *.xpi
+*.zip

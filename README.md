@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/nyas1/terminal-tab">github.com/nyas1/terminal-tab</a>
+</p>
+
+<p align="center">
   <img src="https://dc.missuo.ru/file/1472233821897494592" width="900" alt="Terminal Tab preview">
 </p>
 
@@ -93,9 +97,10 @@ Get a **refresh token**, then set three env vars on Vercel.
 
 ### Firefox `.xpi`
 
+- Requires **Firefox 140+** (desktop) / **142+** (Android) for this manifest (built-in data-collection consent).
 - **`npm run build:extension`**
 - Copy **`dist/assets/`** → **`firefox_addon/assets/`**
 - Edit **`firefox_addon/newtab.html`**: set the `<script>` and `<link rel="stylesheet">` **`./assets/...`** paths to the same hashed names as in **`dist/index.html`**.
-- **`python package_addon.py`** → **`terminal-tab-v2.3.xpi`**
+- **`python package_addon.py`** → **`terminal-tab-<version>.xpi`** (from `firefox_addon/manifest.json`)
 
 ---

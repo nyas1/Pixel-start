@@ -1,19 +1,27 @@
 {
   "name": "terminal-tab",
-  "version": "2.3.0",
+  "version": "1.0.1",
+  "description": "Retro-inspired terminal-style new tab dashboard (web + Firefox extension).",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nyas1/terminal-tab.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nyas1/terminal-tab/issues"
+  },
+  "homepage": "https://github.com/nyas1/terminal-tab#readme",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "build:extension": "tsc && vite build --mode extension",
+    "icons:extension": "node scripts/render-extension-icons.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.0.0",
     "@fontsource/vt323": "^5.0.0",
     "dseg": "^0.46.0",
-    "lodash": "^4.17.21",
-    "pixelarticons": "^2.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-grid-layout": "^1.4.4"
@@ -26,6 +34,7 @@
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
+    "sharp": "^0.33.5",
     "typescript": "^5.2.2",
     "vite": "^5.0.0"
   }

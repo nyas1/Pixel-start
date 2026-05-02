@@ -9,7 +9,7 @@ def create_source_zip(output_filename):
         "package-lock.json", "tsconfig.json", "vite.config.js", 
         "tailwind.config.js", "postcss.config.js", "package_addon.py"
     ]
-    include_dirs = ["components", "firefox_addon"]
+    include_dirs = ["components", "firefox_addon", "public", "scripts"]
 
     # SECURITY: Use relative path to avoid exposing user info or hardcoded paths
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -44,4 +44,4 @@ def create_source_zip(output_filename):
     print(f"Successfully created source zip: {output_path}")
 
 if __name__ == "__main__":
-    create_source_zip("terminal-tab-source-v2.3.zip")
+    create_source_zip("terminal-tab-source-1.0.1.zip")

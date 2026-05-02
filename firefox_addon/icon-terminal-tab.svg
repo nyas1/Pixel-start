@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_terminal_tab_icon)">
+<rect width="64" height="64" fill="white"/>
+<rect width="64" height="64" fill="black"/>
+<path d="M46.9492 42.6719H33.5088V38.752H46.9492V42.6719ZM29.8799 26.8242V30.8281L17 36.6797V32.8721L24.7285 29.4834C25.1017 29.3155 25.4938 29.1754 25.9043 29.0635C26.3147 28.9516 26.6412 28.8772 26.8838 28.8398C26.6412 28.8025 26.3147 28.7368 25.9043 28.6436C25.4938 28.5316 25.1017 28.3916 24.7285 28.2236L17 24.8359V21L29.8799 26.8242Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_terminal_tab_icon">
+<rect width="64" height="64" fill="white"/>
+</clipPath>
+</defs>
+</svg>
