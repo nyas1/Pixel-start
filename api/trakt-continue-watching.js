@@ -3,17 +3,20 @@ const TRAKT_PLAYBACK_ENDPOINT = 'https://api.trakt.tv/sync/playback/episodes?ext
 const TRAKT_WATCHED_SHOWS_ENDPOINT = 'https://api.trakt.tv/sync/watched/shows';
 const USER_AGENT = 'TerminalTab/1.0 (+https://github.com/nyas1/terminal-tab)';
 const TOKEN_SKEW_SECONDS = 60;
+const MAX_PROGRESS_LOOKUPS = 3;
 
 let tokenCache = {
   accessToken: '',
   clientId: '',
   expiresAtMs: 0
 };
+let latestRefreshToken = '';
 let playbackCache = {
   limit: 0,
   items: null,
   expiresAtMs: 0
 };
+let cooldownUntilMs = 0;
 let showCache = new Map();
 let seasonCache = new Map();
 
@@ -31,18 +34,19 @@ const parseLimit = (value) => {
 };
 
 const getConfig = () => {
-  const clientId = process.env.TRAKT_CLIENT_ID;
-  const clientSecret = process.env.TRAKT_CLIENT_SECRET;
-  const refreshToken = process.env.TRAKT_REFRESH_TOKEN;
+  const clientId = String(process.env.TRAKT_CLIENT_ID || '').trim();
+  const clientSecret = String(process.env.TRAKT_CLIENT_SECRET || '').trim();
+  const refreshToken = String(process.env.TRAKT_REFRESH_TOKEN || '').trim();
   if (!clientId || !clientSecret || !refreshToken) {
     throw createFailure('missing_env', 'Missing TRAKT_CLIENT_ID, TRAKT_CLIENT_SECRET, or TRAKT_REFRESH_TOKEN');
   }
-  const redirectUri = process.env.TRAKT_REDIRECT_URI || '';
+  const redirectUri = String(process.env.TRAKT_REDIRECT_URI || '').trim();
   return { clientId, clientSecret, refreshToken, redirectUri };
 };
 
 const getAccessToken = async () => {
   const { clientId, clientSecret, refreshToken, redirectUri } = getConfig();
+  if (!latestRefreshToken) latestRefreshToken = refreshToken;
   const now = Date.now();
   if (
     tokenCache.accessToken &&
@@ -54,7 +58,7 @@ const getAccessToken = async () => {
 
   const tokenBody = {
     grant_type: 'refresh_token',
-    refresh_token: refreshToken,
+    refresh_token: latestRefreshToken || refreshToken,
     client_id: clientId,
     client_secret: clientSecret
   };
@@ -87,11 +91,22 @@ const getAccessToken = async () => {
   }
 
   if (!tokenRes.ok) {
+    const retryAfter = Number.parseInt(String(tokenRes.headers.get('Retry-After') || ''), 10);
+    if (Number.isFinite(retryAfter) && retryAfter > 0) {
+      cooldownUntilMs = Date.now() + retryAfter * 1000;
+    }
     const reason =
       tokenData?.error_description ||
       tokenData?.error ||
       tokenData?.message ||
       (rawText ? rawText.slice(0, 200) : `HTTP ${tokenRes.status}`);
+    if (tokenRes.status === 400 && String(tokenData?.error || '').toLowerCase() === 'invalid_grant') {
+      throw createFailure(
+        'token_exchange_failed',
+        'Trakt token exchange failed: invalid_grant (refresh token/client/redirect mismatch or rotated token). Re-generate and update TRAKT_REFRESH_TOKEN.',
+        tokenRes.status
+      );
+    }
     throw createFailure('token_exchange_failed', `Trakt token exchange failed: ${reason}`, tokenRes.status);
   }
 
@@ -110,6 +125,9 @@ const getAccessToken = async () => {
     clientId,
     expiresAtMs
   };
+  if (tokenData?.refresh_token && typeof tokenData.refresh_token === 'string') {
+    latestRefreshToken = tokenData.refresh_token.trim() || latestRefreshToken;
+  }
 
   return { accessToken: tokenData.access_token, clientId };
 };
@@ -267,6 +285,17 @@ export default async function handler(req, res) {
 
   const limit = parseLimit(req.query?.limit);
   const now = Date.now();
+  if (cooldownUntilMs > now) {
+    const retryInSec = Math.max(1, Math.ceil((cooldownUntilMs - now) / 1000));
+    res.setHeader('Retry-After', String(retryInSec));
+    res.status(429).json({
+      error: 'Trakt unavailable',
+      stage: 'rate_limited',
+      details: `Trakt rate limited. Retry in ${retryInSec}s.`,
+      statusCode: 429
+    });
+    return;
+  }
 
   if (
     Array.isArray(playbackCache.items) &&
@@ -298,7 +327,7 @@ export default async function handler(req, res) {
       const watchedBody = await watchedRes.json();
       const watchedShows = (Array.isArray(watchedBody) ? watchedBody : [])
         .sort((a, b) => new Date(b?.last_watched_at || '').getTime() - new Date(a?.last_watched_at || '').getTime())
-        .slice(0, Math.max(limit * 3, 12));
+        .slice(0, MAX_PROGRESS_LOOKUPS);
       continueItems = (await Promise.all(watchedShows.map((entry) => mapContinueWatchingShow(entry, accessToken, clientId)))).filter(Boolean);
     }
     const deduped = new Map();
