@@ -31,6 +31,10 @@ export const Settings: React.FC = () => {
         spotifyApiBaseUrl, setSpotifyApiBaseUrl,
         githubUsername, setGithubUsername,
         githubApiBaseUrl, setGithubApiBaseUrl,
+        anilistUsername, setAnilistUsername,
+        anilistAccessToken, setAnilistAccessToken,
+        anilistShownLists, setAnilistShownLists,
+        anilistLinkTarget, setAnilistLinkTarget,
         showWidgetTitles, setShowWidgetTitles,
         customFont, setCustomFont,
         customTabTitle, setCustomTabTitle,
@@ -332,6 +336,14 @@ export const Settings: React.FC = () => {
                                     onGithubUsernameChange={setGithubUsername}
                                     githubApiBaseUrl={githubApiBaseUrl}
                                     onGithubApiBaseUrlChange={setGithubApiBaseUrl}
+                                    anilistUsername={anilistUsername}
+                                    onAnilistUsernameChange={setAnilistUsername}
+                                    anilistAccessToken={anilistAccessToken}
+                                    onAnilistAccessTokenChange={setAnilistAccessToken}
+                                    anilistShownLists={anilistShownLists}
+                                    onAnilistShownListsChange={setAnilistShownLists}
+                                    anilistLinkTarget={anilistLinkTarget}
+                                    onAnilistLinkTargetChange={setAnilistLinkTarget}
                                 />
                             )}
 

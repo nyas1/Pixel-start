@@ -128,6 +128,18 @@ interface AppContextType {
     /** Optional https origin for /api/github-work-items. Empty = same-origin /api. */
     githubApiBaseUrl: string;
     setGithubApiBaseUrl: (url: string) => void;
+    /** AniList username used for currently watching anime. */
+    anilistUsername: string;
+    setAnilistUsername: (value: string) => void;
+    /** Optional AniList OAuth token for private list visibility. */
+    anilistAccessToken: string;
+    setAnilistAccessToken: (value: string) => void;
+    /** AniList list statuses to show in widget (max 3). */
+    anilistShownLists: ('CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING')[];
+    setAnilistShownLists: (value: ('CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING')[]) => void;
+    /** Where AniList widget links open: AniList page or Miruro watch page. */
+    anilistLinkTarget: 'anilist' | 'miruro';
+    setAnilistLinkTarget: (value: 'anilist' | 'miruro') => void;
     isLayoutLocked: boolean;
     setIsLayoutLocked: (locked: boolean) => void;
     isResizingEnabled: boolean;
@@ -213,6 +225,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         links: true,
         spotify: false,
         github: false,
+        anilist: false,
         donut: false,
         matrix: false,
         pipes: false,
@@ -229,6 +242,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [spotifyApiBaseUrl, setSpotifyApiBaseUrl] = useStickyState<string>('', 'tui-spotify-api-base-url');
     const [githubUsername, setGithubUsername] = useStickyState<string>('', 'tui-github-username');
     const [githubApiBaseUrl, setGithubApiBaseUrl] = useStickyState<string>('', 'tui-github-api-base-url');
+    const [anilistUsername, setAnilistUsername] = useStickyState<string>('', 'tui-anilist-username');
+    const [anilistAccessToken, setAnilistAccessToken] = useStickyState<string>('', 'tui-anilist-access-token');
+    const [anilistShownLists, setAnilistShownLists] = useStickyState<('CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING')[]>(['CURRENT'], 'tui-anilist-shown-lists');
+    const [anilistLinkTarget, setAnilistLinkTarget] = useStickyState<'anilist' | 'miruro'>('anilist', 'tui-anilist-link-target');
 
     const [isLayoutLocked, setIsLayoutLocked] = useStickyState<boolean>(true, 'tui-layout-locked-v2');
     const [isResizingEnabled, setIsResizingEnabled] = useStickyState<boolean>(false, 'tui-resizing-enabled');
@@ -391,6 +408,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             links: true,
             spotify: false,
             github: false,
+            anilist: false,
             donut: false,
             matrix: false,
             pipes: false,
@@ -423,6 +441,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setSpotifyApiBaseUrl('');
         setGithubUsername('');
         setGithubApiBaseUrl('');
+        setAnilistUsername('');
+        setAnilistAccessToken('');
+        setAnilistShownLists(['CURRENT']);
+        setAnilistLinkTarget('anilist');
     };
 
     const removeExtraWidget = (key: string) => {
@@ -535,7 +557,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 spotifyPulse,
                 spotifyApiBaseUrl,
                 githubUsername,
-                githubApiBaseUrl
+                githubApiBaseUrl,
+                anilistUsername,
+                anilistAccessToken,
+                anilistShownLists,
+                anilistLinkTarget
             }
         };
         setPresets([...presets, newPreset]);
@@ -573,6 +599,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (d.spotifyApiBaseUrl !== undefined) setSpotifyApiBaseUrl(d.spotifyApiBaseUrl);
         if (d.githubUsername !== undefined) setGithubUsername(d.githubUsername);
         if (d.githubApiBaseUrl !== undefined) setGithubApiBaseUrl(d.githubApiBaseUrl);
+        if (d.anilistUsername !== undefined) setAnilistUsername(d.anilistUsername);
+        if (d.anilistAccessToken !== undefined) setAnilistAccessToken(d.anilistAccessToken);
+        if (d.anilistShownLists !== undefined) setAnilistShownLists(d.anilistShownLists);
+        if (d.anilistLinkTarget !== undefined) setAnilistLinkTarget(d.anilistLinkTarget);
     };
 
     const handleDeletePreset = (id: number) => {
@@ -612,6 +642,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         spotifyApiBaseUrl, setSpotifyApiBaseUrl,
         githubUsername, setGithubUsername,
         githubApiBaseUrl, setGithubApiBaseUrl,
+        anilistUsername, setAnilistUsername,
+        anilistAccessToken, setAnilistAccessToken,
+        anilistShownLists, setAnilistShownLists,
+        anilistLinkTarget, setAnilistLinkTarget,
         isLayoutLocked, setIsLayoutLocked,
         isResizingEnabled, setIsResizingEnabled,
         presets, setPresets,

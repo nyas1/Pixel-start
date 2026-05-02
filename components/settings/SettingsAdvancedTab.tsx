@@ -157,6 +157,14 @@ interface SettingsAdvancedTabProps {
     onGithubUsernameChange: (username: string) => void;
     githubApiBaseUrl: string;
     onGithubApiBaseUrlChange: (url: string) => void;
+    anilistUsername: string;
+    onAnilistUsernameChange: (username: string) => void;
+    anilistAccessToken: string;
+    onAnilistAccessTokenChange: (token: string) => void;
+    anilistShownLists: ('CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING')[];
+    onAnilistShownListsChange: (lists: ('CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING')[]) => void;
+    anilistLinkTarget: 'anilist' | 'miruro';
+    onAnilistLinkTargetChange: (target: 'anilist' | 'miruro') => void;
 
 }
 
@@ -216,6 +224,14 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onGithubUsernameChange,
     githubApiBaseUrl,
     onGithubApiBaseUrlChange,
+    anilistUsername,
+    onAnilistUsernameChange,
+    anilistAccessToken,
+    onAnilistAccessTokenChange,
+    anilistShownLists,
+    onAnilistShownListsChange,
+    anilistLinkTarget,
+    onAnilistLinkTargetChange,
 }) => {
     const clickTimeoutsRef = React.useRef<Record<string, number>>({});
     const faviconFileRef = React.useRef<HTMLInputElement>(null);
@@ -254,6 +270,25 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             onToggleSearchEngine(engineId);
             delete clickTimeoutsRef.current[key];
         }, 220);
+    };
+
+    const ANILIST_LIST_OPTIONS: { id: 'CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING'; label: string }[] = [
+        { id: 'CURRENT', label: 'Watching' },
+        { id: 'COMPLETED', label: 'Completed' },
+        { id: 'PAUSED', label: 'Paused' },
+        { id: 'DROPPED', label: 'Dropped' },
+        { id: 'PLANNING', label: 'Planning' }
+    ];
+
+    const toggleAnilistList = (listId: 'CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING') => {
+        const exists = anilistShownLists.includes(listId);
+        if (exists) {
+            const next = anilistShownLists.filter((id) => id !== listId);
+            onAnilistShownListsChange(next.length > 0 ? next : ['CURRENT']);
+            return;
+        }
+        if (anilistShownLists.length >= 3) return;
+        onAnilistShownListsChange([...anilistShownLists, listId]);
     };
 
     return (
@@ -651,6 +686,79 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                             />
                             <span className="text-[var(--color-muted)] text-[10px] opacity-70">
                                 Origin that serves <span className="font-mono">/api/github-work-items</span> (no trailing slash), with <span className="font-mono">GITHUB_TOKEN</span> set on the server. Leave empty for same-origin.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeWidgets.anilist && (
+                <div className="border border-[var(--color-border)] p-4">
+                    <h3 className="text-[var(--color-accent)] font-bold mb-2">AniList Widget</h3>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[var(--color-muted)] text-xs">AniList Username</span>
+                            <input
+                                type="text"
+                                autoComplete="off"
+                                placeholder="e.g. yourname"
+                                className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans"
+                                value={anilistUsername}
+                                onChange={(e) => onAnilistUsernameChange(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[var(--color-muted)] text-xs">AniList Access Token (optional)</span>
+                            <input
+                                type="password"
+                                autoComplete="off"
+                                placeholder="Optional OAuth token"
+                                className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans"
+                                value={anilistAccessToken}
+                                onChange={(e) => onAnilistAccessTokenChange(e.target.value)}
+                            />
+                            <span className="text-[var(--color-muted)] text-[10px] opacity-70">
+                                Leave empty for public list access by username. Add token only if you need private list visibility.
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
+                            <span className="text-[var(--color-muted)] text-xs">Open anime links in</span>
+                            <div className="flex flex-wrap gap-4">
+                                <div onClick={() => onAnilistLinkTargetChange('anilist')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                    <span className="font-mono text-[var(--color-accent)] font-bold">
+                                        {anilistLinkTarget === 'anilist' ? '[x]' : '[ ]'}
+                                    </span>
+                                    <span className="text-[var(--color-fg)] text-sm">AniList</span>
+                                </div>
+                                <div onClick={() => onAnilistLinkTargetChange('miruro')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                    <span className="font-mono text-[var(--color-accent)] font-bold">
+                                        {anilistLinkTarget === 'miruro' ? '[x]' : '[ ]'}
+                                    </span>
+                                    <span className="text-[var(--color-fg)] text-sm">Miruro</span>
+                                </div>
+                            </div>
+                            <span className="text-[var(--color-muted)] text-[10px] opacity-70">
+                                Miruro format: https://www.miruro.to/watch/&lt;anilist-id&gt;/
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
+                            <span className="text-[var(--color-muted)] text-xs">Lists to show (max 3)</span>
+                            <div className="flex flex-wrap gap-3">
+                                {ANILIST_LIST_OPTIONS.map((option) => (
+                                    <div
+                                        key={option.id}
+                                        onClick={() => toggleAnilistList(option.id)}
+                                        className={`flex items-center gap-2 select-none ${anilistShownLists.length >= 3 && !anilistShownLists.includes(option.id) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer group'}`}
+                                    >
+                                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                                            {anilistShownLists.includes(option.id) ? '[x]' : '[ ]'}
+                                        </span>
+                                        <span className="text-[var(--color-fg)] text-sm">{option.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <span className="text-[var(--color-muted)] text-[10px] opacity-70">
+                                Selected: {anilistShownLists.length}/3
                             </span>
                         </div>
                     </div>
