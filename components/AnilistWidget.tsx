@@ -99,14 +99,13 @@ const toCompletedTimestamp = (completedAt: any): number | null => {
 };
 
 export const AnilistWidget: React.FC = () => {
-  const { anilistUsername, anilistAccessToken, anilistShownLists, anilistLinkTarget } = useAppContext();
+  const { anilistUsername, anilistShownLists, anilistLinkTarget } = useAppContext();
   const [state, setState] = useState<WidgetState>({ status: 'loading' });
   const [filter, setFilter] = useState<AnilistFilter>('CURRENT');
 
   useEffect(() => {
     let alive = true;
     const username = anilistUsername.trim();
-    const token = anilistAccessToken.trim();
     const selectedLists = (anilistShownLists.length ? anilistShownLists : ['CURRENT'])
       .filter((value): value is AnilistListStatus => VALID_LISTS.includes(value as AnilistListStatus))
       .slice(0, MAX_SHOWN_LISTS);
@@ -122,7 +121,6 @@ export const AnilistWidget: React.FC = () => {
           'Content-Type': 'application/json',
           Accept: 'application/json'
         };
-        if (token) headers.Authorization = `Bearer ${token}`;
 
         const res = await fetch(ANILIST_ENDPOINT, {
           method: 'POST',
@@ -192,7 +190,7 @@ export const AnilistWidget: React.FC = () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [anilistAccessToken, anilistShownLists, anilistUsername]);
+  }, [anilistShownLists, anilistUsername]);
 
   useEffect(() => {
     const selectedLists = (anilistShownLists.length ? anilistShownLists : ['CURRENT'])

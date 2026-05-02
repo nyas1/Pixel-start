@@ -22,6 +22,7 @@ import { MazeWidget } from './components/MazeWidget';
 import { SpotifyWidget } from './components/SpotifyWidget';
 import { GitHubWidget } from './components/GitHubWidget';
 import { AnilistWidget } from './components/AnilistWidget';
+import { TraktWidget } from './components/TraktWidget';
 import { Settings } from './components/Settings';
 import { ThemeMaker } from './components/ThemeMaker';
 import { AppProvider, useAppContext } from './contexts/AppContext';
@@ -180,6 +181,8 @@ function AppContent() {
                 return <TuiBox {...boxProps} title="github"><GitHubWidget /></TuiBox>;
               case 'anilist':
                 return <TuiBox {...boxProps} title="anilist"><AnilistWidget /></TuiBox>;
+              case 'trakt':
+                return <TuiBox {...boxProps} title="trakt"><TraktWidget /></TuiBox>;
               default:
                 return null;
             }

@@ -159,12 +159,12 @@ interface SettingsAdvancedTabProps {
     onGithubApiBaseUrlChange: (url: string) => void;
     anilistUsername: string;
     onAnilistUsernameChange: (username: string) => void;
-    anilistAccessToken: string;
-    onAnilistAccessTokenChange: (token: string) => void;
     anilistShownLists: ('CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING')[];
     onAnilistShownListsChange: (lists: ('CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING')[]) => void;
     anilistLinkTarget: 'anilist' | 'miruro';
     onAnilistLinkTargetChange: (target: 'anilist' | 'miruro') => void;
+    traktApiBaseUrl: string;
+    onTraktApiBaseUrlChange: (url: string) => void;
 
 }
 
@@ -226,12 +226,12 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onGithubApiBaseUrlChange,
     anilistUsername,
     onAnilistUsernameChange,
-    anilistAccessToken,
-    onAnilistAccessTokenChange,
     anilistShownLists,
     onAnilistShownListsChange,
     anilistLinkTarget,
     onAnilistLinkTargetChange,
+    traktApiBaseUrl,
+    onTraktApiBaseUrlChange,
 }) => {
     const clickTimeoutsRef = React.useRef<Record<string, number>>({});
     const faviconFileRef = React.useRef<HTMLInputElement>(null);
@@ -707,20 +707,6 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                                 onChange={(e) => onAnilistUsernameChange(e.target.value)}
                             />
                         </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[var(--color-muted)] text-xs">AniList Access Token (optional)</span>
-                            <input
-                                type="password"
-                                autoComplete="off"
-                                placeholder="Optional OAuth token"
-                                className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans"
-                                value={anilistAccessToken}
-                                onChange={(e) => onAnilistAccessTokenChange(e.target.value)}
-                            />
-                            <span className="text-[var(--color-muted)] text-[10px] opacity-70">
-                                Leave empty for public list access by username. Add token only if you need private list visibility.
-                            </span>
-                        </div>
                         <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
                             <span className="text-[var(--color-muted)] text-xs">Open anime links in</span>
                             <div className="flex flex-wrap gap-4">
@@ -759,6 +745,29 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                             </div>
                             <span className="text-[var(--color-muted)] text-[10px] opacity-70">
                                 Selected: {anilistShownLists.length}/3
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeWidgets.trakt && (
+                <div className="border border-[var(--color-border)] p-4">
+                    <h3 className="text-[var(--color-accent)] font-bold mb-2">Trakt Widget</h3>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[var(--color-muted)] text-xs">Trakt API base URL</span>
+                            <input
+                                type="url"
+                                inputMode="url"
+                                autoComplete="off"
+                                placeholder="https://your-deploy.vercel.app"
+                                className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans"
+                                value={traktApiBaseUrl}
+                                onChange={(e) => onTraktApiBaseUrlChange(e.target.value)}
+                            />
+                            <span className="text-[var(--color-muted)] text-[10px] opacity-70">
+                                Origin that serves <span className="font-mono">/api/trakt-continue-watching</span> (no trailing slash), with <span className="font-mono">TRAKT_CLIENT_ID</span>, <span className="font-mono">TRAKT_CLIENT_SECRET</span>, and <span className="font-mono">TRAKT_REFRESH_TOKEN</span> set on the server. Leave empty for same-origin.
                             </span>
                         </div>
                     </div>

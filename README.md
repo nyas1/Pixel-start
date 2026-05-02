@@ -22,77 +22,11 @@
 
 ---
 
-## Spotify Now Playing
+## Integrations Setup
 
-Widget → **`/api/spotify-now-playing`** (`api/spotify-now-playing.js` on Vercel: `https://<your-project>.vercel.app/api/spotify-now-playing`).
+Setup for Spotify, GitHub, and AniList has been moved to:
 
-Get a **refresh token**, then set three env vars on Vercel.
-
-### 1. Create a Spotify app
-
-- Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-- Click **Create app** and note **Client ID** and **Client Secret**.
-- **Redirect URIs**: `http://127.0.0.1:5555/callback`
-
-### 2. Get an authorization `code`
-
-- Replace `YOUR_CLIENT_ID` in this URL, then open it in a browser:
-
-  ```
-  https://accounts.spotify.com/authorize?response_type=code&client_id=YOUR_CLIENT_ID&scope=user-read-currently-playing%20user-read-recently-played&redirect_uri=http%3A%2F%2F127.0.0.1%3A5555%2Fcallback
-  ```
-
-- Log in and approve.
-- From `http://127.0.0.1:5555/callback?code=...`, copy the **`code`** query value (before it expires).
-
-### 3. Exchange `code` for a `refresh_token`
-
-- Replace placeholders (`redirect_uri` must match step 1):
-
-  ```bash
-  curl -s -X POST "https://accounts.spotify.com/api/token" \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "grant_type=authorization_code" \
-    -d "code=PASTE_CODE_HERE" \
-    -d "redirect_uri=http://127.0.0.1:5555/callback" \
-    -d "client_id=YOUR_CLIENT_ID" \
-    -d "client_secret=YOUR_CLIENT_SECRET"
-  ```
-
-- Copy **`refresh_token`** from the JSON.
-
-### 4. Add secrets on Vercel
-
-- In the Vercel project: **Settings** → **Environment Variables**.
-- Add:
-
-  - `SPOTIFY_CLIENT_ID` — from the Spotify app
-  - `SPOTIFY_CLIENT_SECRET` — from the Spotify app
-  - `SPOTIFY_REFRESH_TOKEN` — from the JSON in step 3
-
-- Save and **redeploy**.
-
-### 5. Firefox extension
-
-- **Settings** → **Advanced** → enable **Spotify**.
-- Set **Spotify API base URL** to `https://<your-project>.vercel.app` (no trailing slash).
-
-
-## GitHub Issues & PRs
-
-Widget → **`/api/github-work-items`** (`api/github-work-items.js` on Vercel: `https://<your-project>.vercel.app/api/github-work-items`).
-
-### Secure mode (recommended)
-
-- Add env var in Vercel project settings:
-  - `GITHUB_TOKEN` — PAT with read access to repos/issues/PRs you want surfaced
-- Redeploy.
-- In Terminal Tab:
-  - Enable **GitHub** widget
-  - **Settings → Advanced → GitHub Widget**
-  - Set mode to **Secure (server API)**
-  - Set **GitHub Username**
-  - If needed (extension / different host), set **GitHub API base URL** to your deployed origin
+- [`INTEGRATIONS_SETUP.md`](./INTEGRATIONS_SETUP.md)
 
 
 ## Build

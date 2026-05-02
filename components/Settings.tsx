@@ -32,9 +32,9 @@ export const Settings: React.FC = () => {
         githubUsername, setGithubUsername,
         githubApiBaseUrl, setGithubApiBaseUrl,
         anilistUsername, setAnilistUsername,
-        anilistAccessToken, setAnilistAccessToken,
         anilistShownLists, setAnilistShownLists,
         anilistLinkTarget, setAnilistLinkTarget,
+        traktApiBaseUrl, setTraktApiBaseUrl,
         showWidgetTitles, setShowWidgetTitles,
         customFont, setCustomFont,
         customTabTitle, setCustomTabTitle,
@@ -338,12 +338,12 @@ export const Settings: React.FC = () => {
                                     onGithubApiBaseUrlChange={setGithubApiBaseUrl}
                                     anilistUsername={anilistUsername}
                                     onAnilistUsernameChange={setAnilistUsername}
-                                    anilistAccessToken={anilistAccessToken}
-                                    onAnilistAccessTokenChange={setAnilistAccessToken}
                                     anilistShownLists={anilistShownLists}
                                     onAnilistShownListsChange={setAnilistShownLists}
                                     anilistLinkTarget={anilistLinkTarget}
                                     onAnilistLinkTargetChange={setAnilistLinkTarget}
+                                    traktApiBaseUrl={traktApiBaseUrl}
+                                    onTraktApiBaseUrlChange={setTraktApiBaseUrl}
                                 />
                             )}
 
