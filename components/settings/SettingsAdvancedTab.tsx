@@ -6,6 +6,7 @@ import {
     writeTraktJson,
     traktApiUrl,
     traktOAuthPostHeaders,
+    formatTraktFetchError,
     type TraktDeviceCodeState,
     type TraktStoredAuth
 } from '../../utils/traktClient';
@@ -251,11 +252,6 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     traktClientSecret,
     onTraktClientSecretChange,
 }) => {
-    const formatTraktNetworkError = (message: string) =>
-        /NetworkError when attempting to fetch resource|Failed to fetch/i.test(message)
-            ? 'Network fetch blocked. If you are using the Firefox addon, update/reload it so cross-site API permissions are applied, then retry.'
-            : message;
-
     const clickTimeoutsRef = React.useRef<Record<string, number>>({});
     const faviconFileRef = React.useRef<HTMLInputElement>(null);
     const [traktDeviceState, setTraktDeviceState] = useState<TraktDeviceCodeState | null>(() =>
@@ -326,7 +322,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             writeTraktJson(TRAKT_DEVICE_STORAGE_KEY, nextState);
             setTraktAuthMessage('Open the activation URL, enter the code, then wait for approval.');
         } catch (error) {
-            const msg = formatTraktNetworkError(error instanceof Error ? error.message : 'unknown error');
+            const msg = formatTraktFetchError(error);
             setTraktAuthMessage(`Trakt: ${msg}`);
         }
     }, [traktClientId, traktClientSecret]);
@@ -401,7 +397,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                 throw new Error(`device token error (${res.status})${extra ? `: ${String(extra)}` : ''}`);
             } catch (error) {
                 if (cancelled) return;
-                const msg = formatTraktNetworkError(error instanceof Error ? error.message : 'unknown error');
+                const msg = formatTraktFetchError(error);
                 setTraktAuthMessage(`Trakt: ${msg}`);
             }
         };
@@ -935,7 +931,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                     <h3 className="text-[var(--color-accent)] font-bold mb-2">Trakt Widget</h3>
                     <div className="flex flex-col gap-3">
                         <p className="text-[10px] font-mono text-[var(--color-muted)]">
-                            Trakt uses your browser only: api.trakt.tv blocks many datacenter IPs (Cloudflare), so OAuth and API calls cannot run on Vercel. Paste your Trakt app credentials below; they are kept in local storage and used only from this device.
+                            Trakt talks straight to api.trakt.tv from this tab. On the hosted website that is usually blocked by CORS; use the Firefox extension or local dev (npm run dev). Extension/local: paste your Trakt app Client ID and Secret below — kept in local storage on this device only.
                         </p>
                         <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
                             <span className="text-[var(--color-muted)] text-xs">Trakt Client ID</span>

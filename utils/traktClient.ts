@@ -17,6 +17,37 @@ const isLocalhost = () => {
   );
 };
 
+/** Where the app is running — drives Trakt error copy (CORS differs for https sites vs extension). */
+export type TraktAppSurface = 'extension' | 'localhost' | 'public-web';
+
+export const getTraktAppSurface = (): TraktAppSurface => {
+  if (typeof window === 'undefined') return 'public-web';
+  const p = window.location.protocol;
+  if (p === 'moz-extension:' || p === 'chrome-extension:') return 'extension';
+  if (isLocalhost()) return 'localhost';
+  return 'public-web';
+};
+
+const isBrowserFetchNetworkError = (message: string) =>
+  /NetworkError when attempting to fetch resource|Failed to fetch|Load failed|Network request failed/i.test(
+    message
+  );
+
+/** User-facing message for thrown errors from Trakt fetch (CORS vs addon permissions vs generic). */
+export const formatTraktFetchError = (error: unknown): string => {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (!isBrowserFetchNetworkError(raw)) return raw;
+
+  const surface = getTraktAppSurface();
+  if (surface === 'extension') {
+    return 'Network fetch blocked. Reload or reinstall the Firefox extension so api.trakt.tv permission is active, then retry.';
+  }
+  if (surface === 'localhost') {
+    return 'Network fetch failed. Check your connection and that the dev server is running (Vite proxies Trakt at /trakt-api on localhost).';
+  }
+  return 'Trakt cannot be used from this website: the browser blocks cross-origin requests to api.trakt.tv (CORS). Use the Terminal Tab Firefox extension, or run the app locally with npm run dev. A hosted API proxy is not viable because Trakt/Cloudflare often blocks datacenter IPs.';
+};
+
 export const getTraktApiBase = (): string =>
   isLocalhost() ? '/trakt-api' : TRAKT_REMOTE_API_BASE;
 

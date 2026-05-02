@@ -7,6 +7,7 @@ import {
   traktApiUrl,
   traktGetJson,
   traktOAuthPostHeaders,
+  formatTraktFetchError,
   type TraktStoredAuth
 } from '../utils/traktClient';
 
@@ -270,11 +271,6 @@ const readErrorSuffix = async (res: Response): Promise<string> => {
     return '';
   }
 };
-
-const formatTraktNetworkError = (message: string): string =>
-  /NetworkError when attempting to fetch resource|Failed to fetch/i.test(message)
-    ? 'Network fetch blocked. Reload/update the addon and verify cross-site permission for api.trakt.tv, then retry.'
-    : message;
 
 async function getRefreshedAuth(clientId: string, clientSecret: string): Promise<TraktStoredAuth> {
   const auth = readTraktJson<TraktStoredAuth>(TRAKT_AUTH_STORAGE_KEY);
@@ -607,7 +603,7 @@ export const TraktWidget: React.FC = () => {
         setState({ status: 'success', nowWatching, continueItems, fallbackItems });
       } catch (error) {
         if (!alive) return;
-        const msg = formatTraktNetworkError(error instanceof Error ? error.message : 'unknown error');
+        const msg = formatTraktFetchError(error);
         setState({ status: 'error', message: `Trakt: ${msg}` });
       }
     };
