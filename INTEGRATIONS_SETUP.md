@@ -1,42 +1,21 @@
 # Integrations Setup (Extension)
 
-This guide is for the Firefox extension build.
+## Shared: Integration API (Spotify + GitHub)
 
-## Shared: Integration API Base URL (Spotify + GitHub)
+**Fork this repo, deploy on [Vercel](https://vercel.com/new).** In the extension: **Settings -> Advanced -> Integration API -> Base URL** = production URL (no trailing slash). Set env vars in **Vercel -> Settings -> Environment Variables**, then redeploy.
 
-In the extension, Spotify and GitHub call your deployed API origin.
+## Spotify
 
-- Open **Settings -> Advanced -> Integration API -> Base URL**
-- Set to your deployed origin (no trailing slash), for example:
-  - `https://<your-project>.vercel.app`
-
-## Spotify Now Playing
-
-Server endpoint used by extension: `/api/spotify-now-playing` (`api/spotify-now-playing.js`).
-
-### 1) Create Spotify app
-
-- Open [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-- Create app and copy:
-  - `SPOTIFY_CLIENT_ID`
-  - `SPOTIFY_CLIENT_SECRET`
-- Add redirect URI: `http://127.0.0.1:5555/callback`
-
-### 2) Get auth code
-
-Open in browser (replace `YOUR_CLIENT_ID`):
+1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard): create app, copy Client ID/Secret, redirect URI `http://127.0.0.1:5555/callback`.
+2. Open (replace `YOUR_CLIENT_ID`):
 
 ```text
 https://accounts.spotify.com/authorize?response_type=code&client_id=YOUR_CLIENT_ID&scope=user-read-currently-playing%20user-read-recently-played&redirect_uri=http%3A%2F%2F127.0.0.1%3A5555%2Fcallback
 ```
 
-After approval, copy `code` from:
+3. Copy `code` from `http://127.0.0.1:5555/callback?code=...`
 
-- `http://127.0.0.1:5555/callback?code=...`
-
-### 3) Exchange code for refresh token
-
-Run this in **PowerShell**:
+4. In **PowerShell**:
 
 ```powershell
 $body = @{
@@ -54,62 +33,19 @@ Invoke-RestMethod `
   -Body $body
 ```
 
-Copy `refresh_token` from response.
+5. Vercel env: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN` (from response `refresh_token`). Redeploy.
+6. Extension: enable **Spotify** widget.
 
-### 4) Add deploy env vars
+## GitHub
 
-- `SPOTIFY_CLIENT_ID`
-- `SPOTIFY_CLIENT_SECRET`
-- `SPOTIFY_REFRESH_TOKEN`
-
-Redeploy.
-
-### 5) Extension settings
-
-- Enable **Spotify** widget
-- Ensure **Integration API -> Base URL** is set
-
-## GitHub Issues & PRs
-
-Server endpoint used by extension: `/api/github-work-items` (`api/github-work-items.js`).
-
-### 1) Add deploy env var
-
-- `GITHUB_TOKEN` (PAT with read access to repos/issues/PRs you want shown)
-
-Redeploy.
-
-### 2) Extension settings
-
-- Enable **GitHub** widget
-- Ensure **Integration API -> Base URL** is set
-- In **GitHub Widget**, set **GitHub Username**
+1. Vercel env: `GITHUB_TOKEN` (PAT with repo/issue read access you need). Redeploy.
+2. Extension: enable **GitHub** widget, set **GitHub Username**.
 
 ## AniList
 
-AniList is direct client-side (no server key needed).
-
-- Enable **AniList** widget
-- Open **Settings -> Advanced -> AniList Widget**
-- Set **AniList Username**
+Enable **AniList** widget → **Settings -> Advanced -> AniList Widget** → **AniList Username**.
 
 ## Trakt
 
-Trakt is direct client-side in the extension.
-
-### 1) Create Trakt app
-
-- Open [Trakt API Apps](https://trakt.tv/oauth/applications)
-- Create app and copy:
-  - **Client ID**
-  - **Client Secret**
-
-### 2) Extension settings
-
-- Enable **Trakt** widget
-- Open **Settings -> Advanced -> Trakt Widget**
-- Paste **Trakt Client ID** and **Trakt Client Secret**
-- Set **TMDB API Key (for posters)** from [TMDB API Settings](https://www.themoviedb.org/settings/api) (required)
-- Click **[ CONNECT ]**, open activation URL, enter code
-
-Note: Trakt credentials are stored locally in extension storage.
+1. [Trakt API Apps](https://trakt.tv/oauth/applications): **Client ID** and **Client Secret**.
+2. Extension: enable **Trakt** → **Settings -> Advanced -> Trakt Widget** → paste credentials, **TMDB API Key (for posters)** from [TMDB API Settings](https://www.themoviedb.org/settings/api) (required) → **CONNECT**, open URL, enter code.
