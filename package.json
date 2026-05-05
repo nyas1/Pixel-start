@@ -1,6 +1,6 @@
 {
   "name": "terminal-tab",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Retro-inspired terminal-style new tab dashboard (web + Firefox extension).",
   "repository": {
     "type": "git",
@@ -17,6 +17,8 @@
     "build:extension": "tsc && vite build --mode extension",
     "icons:extension": "node scripts/render-extension-icons.mjs",
     "package:extension": "npm run build:extension && node scripts/sync-firefox-addon-from-dist.mjs && node scripts/run-package-addon.mjs",
+    "use-manifest:firefox": "node scripts/set-extension-manifest.mjs firefox",
+    "use-manifest:chrome": "node scripts/set-extension-manifest.mjs chrome",
     "preview": "vite preview"
   },
   "dependencies": {

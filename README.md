@@ -7,7 +7,7 @@
 <h1 align="center">Terminal Tab</h1>
 
 <p align="center">
-  Terminal-inspired modular new tab dashboard.
+  Terminal-core modular new tab dashboard.
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@
 - **npm**
 - **Python 3** (for addon packaging script)
 
-### Build Firefox `.xpi` (recommended)
+### Build Firefox `.xpi`
 
 ```bash
 npm ci
@@ -54,6 +54,20 @@ npm run package:extension
 ```
 
 Output: `terminal-tab-<version>.xpi` at repo root (version from `firefox_addon/manifest.json`).
+
+### Build Chrome
+
+```bash
+npm ci
+npm run icons:extension
+npm run build:extension
+node scripts/sync-firefox-addon-from-dist.mjs
+npm run use-manifest:chrome
+```
+
+Load in Chrome: open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `firefox_addon` folder.
+
+When switching back to Firefox flows, run `npm run use-manifest:firefox` (or `npm run package:extension`, which restores the Firefox manifest automatically).
 
 ---
 

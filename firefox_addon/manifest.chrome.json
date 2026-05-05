@@ -1,11 +1,14 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Terminal Tab",
   "version": "2.0.1",
   "description": "Terminal Tab — customizable terminal-style new tab with widgets, themes, and more.",
   "icons": {
     "48": "icon48.png",
     "96": "icon96.png"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
   },
   "chrome_url_overrides": {
     "newtab": "newtab.html"
@@ -22,9 +25,12 @@
       "strict_min_version": "142.0"
     }
   },
-  "permissions": [
-    "https://api.trakt.tv/*",
-    "https://api.themoviedb.org/*"
+  "host_permissions": [
+    "https://*/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
-  "content_security_policy": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; connect-src *;"
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https: wss: http: ws: data: blob:;"
+  }
 }
