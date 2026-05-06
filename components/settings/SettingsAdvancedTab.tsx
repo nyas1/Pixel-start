@@ -36,6 +36,9 @@ const IntegrationsSetupLinkHint: React.FC = () => (
 );
 
 const INTEGRATION_API_REQUIRED_HINT = 'Integration API required.';
+const isTransientTraktStatus = (status: number): boolean =>
+    status === 429 || status === 502 || status === 503 || status === 504;
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 function isProbablyImageFile(file: File): boolean {
     if (file.type.startsWith('image/')) return true;
@@ -316,14 +319,26 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                 setTraktAuthMessage('Enter your Trakt app Client ID and Client Secret below (stored locally only).');
                 return;
             }
-            const res = await fetch(traktApiUrl('/oauth/device/code'), {
-                method: 'POST',
-                headers: traktOAuthPostHeaders(cid),
-                body: JSON.stringify({ client_id: cid })
-            });
-            const body = await res.json().catch(() => ({}));
+            let res: Response | null = null;
+            let body: any = {};
+            for (let attempt = 1; attempt <= 2; attempt += 1) {
+                res = await fetch(traktApiUrl('/oauth/device/code'), {
+                    method: 'POST',
+                    headers: traktOAuthPostHeaders(cid),
+                    body: JSON.stringify({ client_id: cid })
+                });
+                body = await res.json().catch(() => ({}));
+                if (res.ok || !isTransientTraktStatus(res.status) || attempt === 2) break;
+                await sleep(700);
+            }
+            if (!res) {
+                throw new Error('device auth failed');
+            }
             if (!res.ok) {
                 const extra = body?.error_description || body?.error || body?.message || '';
+                if (isTransientTraktStatus(res.status)) {
+                    throw new Error(`device auth temporarily unavailable (${res.status})${extra ? `: ${String(extra)}` : ''}. Please retry.`);
+                }
                 throw new Error(`device auth failed (${res.status})${extra ? `: ${String(extra)}` : ''}`);
             }
             const nextState: TraktDeviceCodeState = {
@@ -398,6 +413,23 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
 
                 const errorCode = String(body?.error || '');
                 if (errorCode === 'authorization_pending' || errorCode === 'slow_down') {
+                    return;
+                }
+                if (isTransientTraktStatus(res.status)) {
+                    // Trakt/edge timeout; keep polling quietly.
+                    return;
+                }
+                if (errorCode === 'invalid_grant' || errorCode === 'invalid_client') {
+                    writeTraktJson(TRAKT_DEVICE_STORAGE_KEY, null);
+                    setTraktDeviceState(null);
+                    const errDesc = body?.error_description;
+                    if (!cancelled) {
+                        setTraktAuthMessage(
+                            errDesc
+                                ? `Trakt: ${errorCode}: ${String(errDesc)}. Click [ CONNECT ] to start a new device auth.`
+                                : `Trakt: ${errorCode}. Click [ CONNECT ] to start a new device auth.`
+                        );
+                    }
                     return;
                 }
                 if (errorCode === 'expired_token' || errorCode === 'access_denied') {

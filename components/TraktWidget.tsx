@@ -71,6 +71,8 @@ const TMDB_API_BASE =
     ? '/tmdb-api'
     : 'https://api.themoviedb.org/3';
 const TRAKT_LIST_TAB_STORAGE_KEY = 'tui-trakt-list-tab';
+const isTransientTraktUpstreamStatus = (status: number): boolean =>
+  status === 429 || status === 502 || status === 503 || status === 504;
 
 const TRAKT_REFRESH_BTN_CLASS =
   'px-0.5 py-0 text-[15px] leading-none font-mono text-[var(--color-muted)] hover:text-[var(--color-accent)] disabled:opacity-50 disabled:pointer-events-none';
@@ -333,6 +335,11 @@ async function getRefreshedAuth(clientId: string, clientSecret: string): Promise
 async function fetchWatchedProgress(clientId: string, token: string): Promise<TraktWatchedItem[]> {
   const res = await traktGetJson(clientId, token, '/users/me/watched/shows?extended=noseasons');
   if (!res.ok) {
+    // This list is supplemental (used for the RECENT tab/fallbacks). If Trakt
+    // has a transient upstream issue, keep the widget usable instead of hard-failing.
+    if ([429, 502, 503, 504].includes(res.status)) {
+      return [];
+    }
     const sfx = await readErrorSuffix(res);
     throw new Error(`Trakt watch data error (${res.status})${sfx}`);
   }
@@ -361,21 +368,29 @@ async function fetchContinueWatching(clientId: string, token: string): Promise<T
   }
 
   const primarySfx = await readErrorSuffix(res);
-  if (res.status !== 401 && res.status !== 403) {
+  if (res.status !== 401 && res.status !== 403 && !isTransientTraktUpstreamStatus(res.status)) {
     throw new Error(`Trakt continue watching error (${res.status})${primarySfx}`);
   }
 
   const fallbacks = ['/sync/playback/episodes', '/sync/playback'];
   let lastSfx = primarySfx;
+  let lastStatus = res.status;
+  let sawTransientFailure = isTransientTraktUpstreamStatus(res.status);
   for (const url of fallbacks) {
     res = await traktGetJson(clientId, token, url);
     if (res.ok) {
       const body = await res.json();
       return toContinueItemsFromPlayback(body);
     }
+    lastStatus = res.status;
+    if (isTransientTraktUpstreamStatus(res.status)) sawTransientFailure = true;
     lastSfx = (await readErrorSuffix(res)) || lastSfx;
   }
-  throw new Error(`Trakt continue watching error (${res.status})${lastSfx}`);
+
+  // Keep the widget usable when Trakt has intermittent upstream timeouts.
+  if (sawTransientFailure) return [];
+
+  throw new Error(`Trakt continue watching error (${lastStatus})${lastSfx}`);
 }
 
 async function fetchPlaybackNowProgress(clientId: string, token: string): Promise<TraktContinueItem[]> {
