@@ -18,9 +18,9 @@ const isLocalhost = () => {
 };
 
 /** Where the app is running — drives Trakt error copy (CORS differs for https sites vs extension). */
-export type TraktAppSurface = 'extension' | 'localhost' | 'public-web';
+type TraktAppSurface = 'extension' | 'localhost' | 'public-web';
 
-export const getTraktAppSurface = (): TraktAppSurface => {
+const getTraktAppSurface = (): TraktAppSurface => {
   if (typeof window === 'undefined') return 'public-web';
   const p = window.location.protocol;
   if (p === 'moz-extension:' || p === 'chrome-extension:') return 'extension';
@@ -48,10 +48,10 @@ export const formatTraktFetchError = (error: unknown): string => {
   return 'Trakt cannot be used from this website: the browser blocks cross-origin requests to api.trakt.tv (CORS). Use the Terminal Tab Firefox extension, or run the app locally with npm run dev. A hosted API proxy is not viable because Trakt/Cloudflare often blocks datacenter IPs.';
 };
 
-export const getTraktApiBase = (): string =>
+const getTraktApiBase = (): string =>
   isLocalhost() ? '/trakt-api' : TRAKT_REMOTE_API_BASE;
 
-export const trimTraktSlash = (s: string): string => s.replace(/\/+$/, '');
+const trimTraktSlash = (s: string): string => s.replace(/\/+$/, '');
 
 /** Full URL for a Trakt API path (uses dev `/trakt-api` proxy on localhost). */
 export const traktApiUrl = (path: string): string => {
@@ -79,7 +79,7 @@ export const traktOAuthPostHeaders = (clientId: string): HeadersInit => {
   };
 };
 
-export const traktAuthedHeaders = (clientId: string, accessToken: string): HeadersInit => {
+const traktAuthedHeaders = (clientId: string, accessToken: string): HeadersInit => {
   const id = clientId.trim();
   const tok = accessToken.trim();
   return {

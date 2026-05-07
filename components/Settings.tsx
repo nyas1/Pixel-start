@@ -49,6 +49,7 @@ export const Settings: React.FC = () => {
         searchEnabledEngines, setSearchEnabledEngines,
         searchSlashHotkeyEnabled, setSearchSlashHotkeyEnabled,
         showFavicons, setShowFavicons,
+        requestFaviconRefresh,
         weatherLocation, setWeatherLocation,
     } = useAppContext();
 
@@ -266,6 +267,7 @@ export const Settings: React.FC = () => {
                                 <SettingsShortcutsTab
                                     linkGroups={linkGroups}
                                     onUpdateLinks={setLinkGroups}
+                                    onRefetchFavicons={requestFaviconRefresh}
                                 />
                             )}
 

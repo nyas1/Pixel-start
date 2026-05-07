@@ -1030,51 +1030,41 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                         )}
                         {traktDeviceState ? (
                             <div className="border border-[var(--color-border)] p-2 text-[10px] text-[var(--color-muted)] font-mono space-y-2">
-                                <div>
-                                    <span className="block mb-1">1) Open (tap link or copy URL):</span>
-                                    <div className="flex flex-wrap items-center gap-2 min-w-0">
-                                        <a
-                                            className="text-[var(--color-accent)] underline shrink-0"
-                                            href={traktDeviceState.verificationUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                        >
-                                            trakt.tv/activate
-                                        </a>
-                                        <button
-                                            type="button"
-                                            onClick={() => void copyTraktText('Activation URL', traktDeviceState.verificationUrl)}
-                                            className="border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius shrink-0"
-                                        >
-                                            [ COPY URL ]
-                                        </button>
-                                    </div>
+                                <div className="text-[10px] opacity-90">1) Open this on Trakt:</div>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <a
+                                        className="text-[var(--color-accent)] underline truncate"
+                                        href={traktDeviceState.verificationUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        title={traktDeviceState.verificationUrl}
+                                    >
+                                        trakt.tv/activate
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => void copyTraktText('Activation URL', traktDeviceState.verificationUrl)}
+                                        className="border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius shrink-0 ml-auto"
+                                    >
+                                        [ COPY ]
+                                    </button>
+                                </div>
+                                <div className="text-[10px] opacity-90">2) Enter this code:</div>
+                                <div className="flex items-center gap-2 min-w-0">
                                     <input
                                         type="text"
                                         readOnly
-                                        className="mt-1 w-full bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-[10px] font-mono select-all outline-none"
-                                        value={traktDeviceState.verificationUrl}
+                                        className="flex-1 min-w-[8rem] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-xs font-mono tracking-widest select-all outline-none"
+                                        value={traktDeviceState.userCode}
                                         onFocus={(e) => e.target.select()}
                                     />
-                                </div>
-                                <div>
-                                    <span className="block mb-1">2) Enter code on Trakt:</span>
-                                    <div className="flex flex-wrap items-center gap-2 min-w-0">
-                                        <input
-                                            type="text"
-                                            readOnly
-                                            className="flex-1 min-w-[8rem] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-xs font-mono tracking-widest select-all outline-none"
-                                            value={traktDeviceState.userCode}
-                                            onFocus={(e) => e.target.select()}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => void copyTraktText('Activation code', traktDeviceState.userCode)}
-                                            className="border border-[var(--color-border)] px-2 py-1 text-[10px] font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius shrink-0"
-                                        >
-                                            [ COPY CODE ]
-                                        </button>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => void copyTraktText('Activation code', traktDeviceState.userCode)}
+                                        className="border border-[var(--color-border)] px-2 py-1 text-[10px] font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius shrink-0"
+                                    >
+                                        [ COPY ]
+                                    </button>
                                 </div>
                                 <p className="opacity-80">Waiting for approval...</p>
                             </div>

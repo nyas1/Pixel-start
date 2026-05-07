@@ -1,92 +1,17 @@
+/** Open issues + PRs via integration `/api/github-work-items`. */
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { GitPullRequestIcon, IssueOpenedIcon } from '@primer/octicons-react';
 import { useAppContext } from '../contexts/AppContext';
-
-type GitHubItem = {
-  id: number;
-  type: 'issue' | 'pr';
-  title: string;
-  repo: string;
-  number: number;
-  url: string;
-  updatedAt: string;
-};
-
-type WidgetState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'success'; items: GitHubItem[] };
-
-type ItemFilter = 'all' | 'issue' | 'pr';
-
-type GitHubApiErrorBody = {
-  error?: string;
-  details?: string;
-  stage?: string;
-};
-
-const getRepoFromHtmlUrl = (url: string): string => {
-  try {
-    const parsed = new URL(url);
-    const [owner, repo] = parsed.pathname.split('/').filter(Boolean);
-    if (!owner || !repo) return 'unknown/repo';
-    return `${owner}/${repo}`;
-  } catch {
-    return 'unknown/repo';
-  }
-};
-
-const getRelativeAge = (updatedAt: string): string => {
-  const t = new Date(updatedAt).getTime();
-  if (Number.isNaN(t)) return '';
-  const diffMs = Date.now() - t;
-  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
-  if (diffMin < 60) return `${diffMin}m`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h`;
-  return `${Math.floor(diffHr / 24)}d`;
-};
-
-const mapItem = (item: any): GitHubItem => ({
-  id: item.id,
-  type: item.type === 'issue' || item.type === 'pr' ? item.type : (item.pull_request ? 'pr' : 'issue'),
-  title: item.title || '(untitled)',
-  repo: item.repo || getRepoFromHtmlUrl(item.html_url || ''),
-  number: item.number || 0,
-  url: item.url || item.html_url || '#',
-  updatedAt: item.updatedAt || item.updated_at || ''
-});
-
-const normalizeUserApiOrigin = (raw: string): string => {
-  let s = raw.trim().replace(/\/+$/, '');
-  if (!s) return '';
-  if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
-  return s.replace(/\/+$/, '');
-};
-
-const resolveGithubApiUrl = (userBase: string, username: string, limit: number) => {
-  const base = normalizeUserApiOrigin(userBase);
-  const qs = `username=${encodeURIComponent(username)}&limit=${limit}`;
-  const apiPath = `/api/github-work-items?${qs}`;
-  if (base) {
-    // Accept either origin ("https://site") or full endpoint URL pasted by user.
-    if (/\/api\/github-work-items(?:\?|$)/i.test(base)) {
-      const withNoTrailingParams = base.replace(/[?&]username=[^&]*/i, '').replace(/[?&]limit=[^&]*/i, '').replace(/[?&]$/, '');
-      const joiner = withNoTrailingParams.includes('?') ? '&' : '?';
-      return `${withNoTrailingParams}${joiner}${qs}`;
-    }
-    return `${base}${apiPath}`;
-  }
-  return apiPath;
-};
-
-const resolveSameOriginGithubApiUrl = (username: string, limit: number) =>
-  `/api/github-work-items?username=${encodeURIComponent(username)}&limit=${limit}`;
+import { GITHUB_WIDGET_LIMIT_DEFAULT, GITHUB_WIDGET_LIMIT_MAX, GITHUB_WIDGET_POLL_MS } from '../utils/githubWidget/constants';
+import { getRelativeAge } from '../utils/githubWidget/model';
+import { fetchGithubWorkItems } from '../utils/githubWidget/service';
+import type { GitHubItemFilter, GitHubWidgetState } from '../utils/githubWidget/types';
 
 export const GitHubWidget: React.FC = () => {
   const { githubUsername, githubLimit, integrationApiBaseUrl } = useAppContext();
-  const [state, setState] = useState<WidgetState>({ status: 'loading' });
-  const [filter, setFilter] = useState<ItemFilter>('all');
+  const [state, setState] = useState<GitHubWidgetState>({ status: 'loading' });
+  const [filter, setFilter] = useState<GitHubItemFilter>('all');
 
   useEffect(() => {
     let alive = true;
@@ -98,53 +23,16 @@ export const GitHubWidget: React.FC = () => {
     }
     const fetchItems = async () => {
       try {
-        const isExtension = window.location.protocol === 'moz-extension:';
-        const safeLimit = Number.isFinite(githubLimit) ? Math.min(20, Math.max(1, Math.floor(githubLimit)))  : 10;
-        const endpoint = resolveGithubApiUrl(integrationApiBaseUrl, username, safeLimit);
-        const issuesRes = await (async () => {
-          try {
-            return await fetch(endpoint, { cache: 'no-store' });
-          } catch (err) {
-            // In strict browser privacy modes, cross-origin requests can fail with
-            // generic NetworkError. Retry same-origin /api on localhost dev.
-            const isLocalhost = /^localhost$|^127\.0\.0\.1$/.test(window.location.hostname);
-            const fallback = resolveSameOriginGithubApiUrl(username, safeLimit);
-            if (!isLocalhost || endpoint === fallback) throw err;
-            return await fetch(fallback, { cache: 'no-store' });
-          }
-        })();
-
-        if (!issuesRes.ok) {
-          const failed = issuesRes;
-          const status = failed.status;
-          let parsed: GitHubApiErrorBody | null = null;
-          try {
-            const body = await failed.json();
-            if (body && typeof body === 'object') parsed = body as GitHubApiErrorBody;
-          } catch {
-            parsed = null;
-          }
-          if (isExtension && !/^https?:\/\//i.test(integrationApiBaseUrl.trim())) {
-            throw new Error('set Integration API base URL in Settings -> Advanced.');
-          }
-          if (status === 404) throw new Error('no /api route here — set Integration API base URL.');
-          if (parsed?.stage === 'missing_env') throw new Error('server missing GITHUB_TOKEN env var.');
-          if (parsed?.details) throw new Error(parsed.details);
-          throw new Error(`GitHub API route error (${status})`);
-        }
-        const merged = ((await issuesRes.json())?.items || []).map(mapItem);
-
-        const deduped: GitHubItem[] = [];
-        const seen = new Set<string>();
-        for (const item of merged) {
-          const key = `${item.type}:${item.repo}#${item.number}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          deduped.push(item);
-        }
-
+        const safeLimit = Number.isFinite(githubLimit)
+          ? Math.min(GITHUB_WIDGET_LIMIT_MAX, Math.max(1, Math.floor(githubLimit)))
+          : GITHUB_WIDGET_LIMIT_DEFAULT;
+        const items = await fetchGithubWorkItems({
+          username,
+          limit: safeLimit,
+          integrationApiBaseUrl
+        });
         if (!alive) return;
-        setState({ status: 'success', items: deduped });
+        setState({ status: 'success', items });
       } catch (err) {
         if (!alive) return;
         const msg = err instanceof Error ? err.message : 'unknown error';
@@ -154,7 +42,7 @@ export const GitHubWidget: React.FC = () => {
 
     setState({ status: 'loading' });
     fetchItems();
-    const timer = window.setInterval(fetchItems, 90000);
+    const timer = window.setInterval(fetchItems, GITHUB_WIDGET_POLL_MS);
 
     return () => {
       alive = false;
@@ -173,8 +61,7 @@ export const GitHubWidget: React.FC = () => {
       return <p className="text-xs text-[var(--color-muted,#888888)]">No open issues or PRs found for this account.</p>;
     }
 
-    const filteredItems =
-      filter === 'all' ? state.items : state.items.filter((item) => item.type === filter);
+    const filteredItems = filter === 'all' ? state.items : state.items.filter((item) => item.type === filter);
 
     return (
       <div className="space-y-2">
@@ -199,30 +86,30 @@ export const GitHubWidget: React.FC = () => {
         ) : (
           <ul className="space-y-2">
             {filteredItems.map((item) => (
-          <li key={`${item.type}-${item.id}`}>
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="block hover:text-[var(--color-accent)]"
-              title={item.title}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="flex min-w-0 items-center gap-1.5 font-mono text-[10px] text-[var(--color-muted,#888888)]">
-                  {item.type === 'pr' ? (
-                    <GitPullRequestIcon size={14} className="shrink-0 text-[var(--color-accent)]" />
-                  ) : (
-                    <IssueOpenedIcon size={14} className="shrink-0 text-[var(--color-accent)]" />
-                  )}
-                  <span className="truncate">
-                    {item.repo} #{item.number}
-                  </span>
-                </span>
-                <span className="font-mono text-[10px] text-[var(--color-muted,#888888)]">{getRelativeAge(item.updatedAt)}</span>
-              </div>
-              <p className="truncate text-xs text-[var(--color-fg,#e0e0e0)]">{item.title}</p>
-            </a>
-          </li>
+              <li key={`${item.type}-${item.id}`}>
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block hover:text-[var(--color-accent)]"
+                  title={item.title}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5 font-mono text-[10px] text-[var(--color-muted,#888888)]">
+                      {item.type === 'pr' ? (
+                        <GitPullRequestIcon size={14} className="shrink-0 text-[var(--color-accent)]" />
+                      ) : (
+                        <IssueOpenedIcon size={14} className="shrink-0 text-[var(--color-accent)]" />
+                      )}
+                      <span className="truncate">
+                        {item.repo} #{item.number}
+                      </span>
+                    </span>
+                    <span className="font-mono text-[10px] text-[var(--color-muted,#888888)]">{getRelativeAge(item.updatedAt)}</span>
+                  </div>
+                  <p className="truncate text-xs text-[var(--color-fg,#e0e0e0)]">{item.title}</p>
+                </a>
+              </li>
             ))}
           </ul>
         )}

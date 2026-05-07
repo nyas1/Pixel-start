@@ -1,75 +1,23 @@
+/** Now playing from integration `/api/spotify-now-playing`; optional pixel cover + EQ. */
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import {
+  SPOTIFY_ALBUM_ART_IMG,
+  SPOTIFY_ALBUM_ART_SHELL,
+  SPOTIFY_ALBUM_PIXEL_GRID,
+  SPOTIFY_ART_AREA,
+  SPOTIFY_EQ_BAR_COUNT,
+  SPOTIFY_WIDGET_POLL_MS
+} from '../utils/spotifyWidget/constants';
+import {
+  formatSpotifyErrorMessage,
+  resolveSpotifyApiUrl,
+  spotifyFetchNowPlaying
+} from '../utils/spotifyWidget/service';
+import type { SpotifyApiErrorBody, SpotifyNowPlaying, SpotifyWidgetState } from '../utils/spotifyWidget/types';
 
-type SpotifyNowPlaying = {
-  isPlaying: boolean;
-  title: string;
-  artist: string;
-  album?: string;
-  albumImageUrl?: string;
-  songUrl?: string;
-  playedAt?: string;
-};
-
-type SpotifyApiErrorBody = {
-  error?: string;
-  details?: string;
-  stage?: string;
-};
-
-const formatSpotifyErrorMessage = (
-  endpoint: string,
-  status: number | null,
-  body: SpotifyApiErrorBody | null,
-  isExtension: boolean
-): string => {
-  const hasHttpApi = /^https?:\/\//i.test(endpoint);
-  if (isExtension && !hasHttpApi) {
-    return 'Spotify: add your deployed origin in Settings → Advanced → Integration API (base URL).';
-  }
-  if (status === 404) {
-    return 'Spotify: no /api route here — set Integration API base URL in Settings.';
-  }
-  if (body?.stage === 'missing_env') {
-    return 'Spotify: deploy needs SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REFRESH_TOKEN.';
-  }
-  if (body?.details) {
-    return `Spotify: ${body.details}`;
-  }
-  if (status != null) {
-    return `Spotify unavailable (HTTP ${status})`;
-  }
-  return 'Spotify: network error — check API URL or connection.';
-};
-
-/** If the user omits the scheme, assume https (avoids browser treating host as a relative path). */
-const normalizeUserApiOrigin = (raw: string): string => {
-  let s = raw.trim().replace(/\/+$/, '');
-  if (!s) return '';
-  if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
-  return s.replace(/\/+$/, '');
-};
-
-type WidgetState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'success'; data: SpotifyNowPlaying };
-
-/** Saved settings origin, or same-origin /api (no build-time default — same rule as the extension). */
-const resolveSpotifyApiUrl = (userBase: string) => {
-  const base = normalizeUserApiOrigin(userBase);
-  if (base) {
-    // Accept either origin ("https://site") or full endpoint URL pasted by user.
-    if (/\/api\/spotify-now-playing$/i.test(base)) return base;
-    return `${base}/api/spotify-now-playing`;
-  }
-  return '/api/spotify-now-playing';
-};
-
-/** Art area: no chrome — full cover scales with flex-1 */
-const artArea = 'min-h-0 w-full flex-1 flex items-stretch justify-center overflow-hidden';
-
-/** Pixel Spotify mark — arc gaps are cut from accent; uses theme accent (replaces #1DB954). */
+/** Pixel Spotify mark — arc gaps from accent (replaces brand green). */
 const SpotifyLogoMark: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg
     className={className}
@@ -115,17 +63,8 @@ const SpotifyLogoMark: React.FC<{ className?: string }> = ({ className = '' }) =
   </svg>
 );
 
-/** Internal grid size; drawn to canvas then scaled up with .pixel-album-art */
-const ALBUM_PIXEL_GRID = 64;
-
-/** Fills the flex art area; without this, tiny intrinsic bitmap size collapses the layout. */
-const albumArtShellClass = 'flex min-h-0 min-w-0 h-full w-full flex-1';
-
-const albumArtImgClass = 'block h-full w-full min-h-0 min-w-0 object-contain object-center';
-
 /**
- * Downscales cover art to a tiny bitmap (nearest-neighbor) so it reads as pixel art.
- * Falls back to the raw image if the CDN blocks canvas (CORS taint).
+ * Downscale cover to a tiny bitmap (nearest-neighbor); falls back to raw img if canvas is tainted.
  */
 const PixelAlbumArt: React.FC<{ src: string; alt: string; pulseWhileLoading: boolean }> = ({
   src,
@@ -146,15 +85,15 @@ const PixelAlbumArt: React.FC<{ src: string; alt: string; pulseWhileLoading: boo
       if (cancelled) return;
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = ALBUM_PIXEL_GRID;
-        canvas.height = ALBUM_PIXEL_GRID;
+        canvas.width = SPOTIFY_ALBUM_PIXEL_GRID;
+        canvas.height = SPOTIFY_ALBUM_PIXEL_GRID;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           setUseOriginal(true);
           return;
         }
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0, ALBUM_PIXEL_GRID, ALBUM_PIXEL_GRID);
+        ctx.drawImage(img, 0, 0, SPOTIFY_ALBUM_PIXEL_GRID, SPOTIFY_ALBUM_PIXEL_GRID);
         setDataUrl(canvas.toDataURL('image/png'));
       } catch {
         if (!cancelled) setUseOriginal(true);
@@ -172,14 +111,8 @@ const PixelAlbumArt: React.FC<{ src: string; alt: string; pulseWhileLoading: boo
 
   if (useOriginal) {
     return (
-      <div className={albumArtShellClass}>
-        <img
-          src={src}
-          alt={alt}
-          className={albumArtImgClass}
-          decoding="async"
-          loading="eager"
-        />
+      <div className={SPOTIFY_ALBUM_ART_SHELL}>
+        <img src={src} alt={alt} className={SPOTIFY_ALBUM_ART_IMG} decoding="async" loading="eager" />
       </div>
     );
   }
@@ -187,34 +120,26 @@ const PixelAlbumArt: React.FC<{ src: string; alt: string; pulseWhileLoading: boo
   if (!dataUrl) {
     return (
       <div
-        className={`${albumArtShellClass} rounded-sm bg-[var(--color-hover,#2a2a2a)]${pulseWhileLoading ? ' animate-pulse' : ''}`}
+        className={`${SPOTIFY_ALBUM_ART_SHELL} rounded-sm bg-[var(--color-hover,#2a2a2a)]${pulseWhileLoading ? ' animate-pulse' : ''}`}
         aria-hidden
       />
     );
   }
 
   return (
-    <div className={albumArtShellClass}>
-      <img
-        src={dataUrl}
-        alt={alt}
-        className={`pixel-album-art ${albumArtImgClass}`}
-        decoding="async"
-      />
+    <div className={SPOTIFY_ALBUM_ART_SHELL}>
+      <img src={dataUrl} alt={alt} className={`pixel-album-art ${SPOTIFY_ALBUM_ART_IMG}`} decoding="async" />
     </div>
   );
 };
-
-/** 2.5× the original 5-bar strip (rounded) */
-const BAR_COUNT = 13;
 
 const SpotifyEqBars: React.FC<{ mode: 'playing' | 'idle' }> = ({ mode }) => (
   <div
     className="grid h-4 w-full shrink-0 items-end gap-x-0.5"
     aria-hidden
-    style={{ gridTemplateColumns: `repeat(${BAR_COUNT}, minmax(0, 1fr))` }}
+    style={{ gridTemplateColumns: `repeat(${SPOTIFY_EQ_BAR_COUNT}, minmax(0, 1fr))` }}
   >
-    {Array.from({ length: BAR_COUNT }, (_, i) => {
+    {Array.from({ length: SPOTIFY_EQ_BAR_COUNT }, (_, i) => {
       const phase = i % 5;
       return (
         <div key={i} className="flex min-w-0 justify-center">
@@ -233,7 +158,7 @@ const SpotifyEqBars: React.FC<{ mode: 'playing' | 'idle' }> = ({ mode }) => (
 
 export const SpotifyWidget: React.FC = () => {
   const { spotifyPixelAlbumArt, spotifyPulse, integrationApiBaseUrl } = useAppContext();
-  const [state, setState] = useState<WidgetState>({ status: 'loading' });
+  const [state, setState] = useState<SpotifyWidgetState>({ status: 'loading' });
 
   useEffect(() => {
     let isMounted = true;
@@ -242,19 +167,7 @@ export const SpotifyWidget: React.FC = () => {
     const fetchNowPlaying = async () => {
       const isExtension = window.location.protocol === 'moz-extension:';
       try {
-        const fetchWithFallback = async () => {
-          try {
-            return await fetch(endpoint, { cache: 'no-store' });
-          } catch (err) {
-            // In strict browser privacy modes, cross-origin requests can fail with
-            // generic NetworkError. Retry same-origin /api on localhost dev.
-            const isLocalhost = /^localhost$|^127\.0\.0\.1$/.test(window.location.hostname);
-            const canFallback = isLocalhost && endpoint !== '/api/spotify-now-playing';
-            if (!canFallback) throw err;
-            return await fetch('/api/spotify-now-playing', { cache: 'no-store' });
-          }
-        };
-        const res = await fetchWithFallback();
+        const res = await spotifyFetchNowPlaying(endpoint);
         let parsed: unknown = null;
         try {
           parsed = await res.json();
@@ -262,10 +175,7 @@ export const SpotifyWidget: React.FC = () => {
           parsed = null;
         }
         if (!res.ok) {
-          const body =
-            parsed && typeof parsed === 'object'
-              ? (parsed as SpotifyApiErrorBody)
-              : null;
+          const body = parsed && typeof parsed === 'object' ? (parsed as SpotifyApiErrorBody) : null;
           if (!isMounted) return;
           setState({
             status: 'error',
@@ -288,7 +198,7 @@ export const SpotifyWidget: React.FC = () => {
     };
 
     fetchNowPlaying();
-    const timer = window.setInterval(fetchNowPlaying, 15000);
+    const timer = window.setInterval(fetchNowPlaying, SPOTIFY_WIDGET_POLL_MS);
 
     return () => {
       isMounted = false;
@@ -319,7 +229,7 @@ export const SpotifyWidget: React.FC = () => {
 
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <div className={artArea}>
+        <div className={SPOTIFY_ART_AREA}>
           {showNowPlaying ? (
             data.albumImageUrl ? (
               spotifyPixelAlbumArt ? (
@@ -329,11 +239,11 @@ export const SpotifyWidget: React.FC = () => {
                   pulseWhileLoading
                 />
               ) : (
-                <div className={albumArtShellClass}>
+                <div className={SPOTIFY_ALBUM_ART_SHELL}>
                   <img
                     src={data.albumImageUrl}
                     alt={data.album ? `${data.album} cover` : 'album cover'}
-                    className={albumArtImgClass}
+                    className={SPOTIFY_ALBUM_ART_IMG}
                     decoding="async"
                     loading="eager"
                   />

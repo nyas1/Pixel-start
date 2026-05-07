@@ -1,108 +1,21 @@
+/** Anime lists from AniList GraphQL (public); tabs + optional Miruro links. */
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-
-type AnilistEntry = {
-  id: number;
-  progress: number;
-  mediaId: number;
-  listStatus: 'CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING';
-  completedAtTs: number | null;
-  nextAiringInSec: number | null;
-  title: string;
-  episodes: number | null;
-  status: string | null;
-  airedEpisodes: number | null;
-  coverImage: string;
-  siteUrl: string;
-};
-
-type AnilistListStatus = 'CURRENT' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'PLANNING';
-type AnilistFilter = AnilistListStatus;
-
-type WidgetState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'success'; items: AnilistEntry[] };
-
-const ANILIST_ENDPOINT = 'https://graphql.anilist.co';
-const MAX_SHOWN_LISTS = 3;
-const LIST_LABELS: Record<AnilistListStatus, string> = {
-  CURRENT: 'Watching',
-  COMPLETED: 'Completed',
-  PAUSED: 'Paused',
-  DROPPED: 'Dropped',
-  PLANNING: 'Planning'
-};
-const VALID_LISTS: AnilistListStatus[] = ['CURRENT', 'COMPLETED', 'PAUSED', 'DROPPED', 'PLANNING'];
-const ANILIST_REFRESH_BTN_CLASS =
-  'px-0.5 py-0 text-[15px] leading-none font-mono text-[var(--color-muted)] hover:text-[var(--color-accent)] disabled:opacity-50 disabled:pointer-events-none';
-
-const QUERY = `
-query AnimeLists($userName: String!, $statusIn: [MediaListStatus]) {
-  MediaListCollection(userName: $userName, type: ANIME, status_in: $statusIn, sort: UPDATED_TIME_DESC) {
-    lists {
-      status
-      entries {
-        id
-        status
-        progress
-        completedAt {
-          year
-          month
-          day
-        }
-        media {
-          id
-          episodes
-          status
-          siteUrl
-          nextAiringEpisode {
-            episode
-            timeUntilAiring
-          }
-          title {
-            romaji
-            english
-            native
-          }
-          coverImage {
-            medium
-          }
-        }
-      }
-    }
-  }
-}
-`;
-
-const pickTitle = (media: any): string =>
-  media?.title?.english || media?.title?.romaji || media?.title?.native || 'Untitled';
-
-const formatProgress = (entry: AnilistEntry): string => {
-  const total = entry.episodes ?? '?';
-  if (entry.status === 'RELEASING') {
-    const aired = entry.airedEpisodes ?? '?';
-    const daysLeft =
-      entry.nextAiringInSec && entry.nextAiringInSec > 0
-        ? `${Math.max(1, Math.ceil(entry.nextAiringInSec / 86400))}d`
-        : null;
-    return `${entry.progress}/[${aired}]${total}${daysLeft ? ` - ${daysLeft}` : ''}`;
-  }
-  return `${entry.progress}/${total}`;
-};
-
-const toCompletedTimestamp = (completedAt: any): number | null => {
-  const year = Number(completedAt?.year || 0);
-  const month = Number(completedAt?.month || 0);
-  const day = Number(completedAt?.day || 0);
-  if (!year || !month || !day) return null;
-  const ts = Date.UTC(year, month - 1, day);
-  return Number.isFinite(ts) ? ts : null;
-};
+import {
+  ANILIST_MAX_SHOWN_LISTS,
+  ANILIST_LIST_LABELS,
+  ANILIST_REFRESH_BTN_CLASS,
+  ANILIST_VALID_LISTS,
+  ANILIST_WIDGET_POLL_MS
+} from '../utils/anilistWidget/constants';
+import { formatAnilistProgress } from '../utils/anilistWidget/model';
+import { fetchAnilistAnimeEntries } from '../utils/anilistWidget/service';
+import type { AnilistFilter, AnilistListStatus, AnilistWidgetState } from '../utils/anilistWidget/types';
 
 export const AnilistWidget: React.FC = () => {
   const { anilistUsername, anilistShownLists, anilistLinkTarget } = useAppContext();
-  const [state, setState] = useState<WidgetState>({ status: 'loading' });
+  const [state, setState] = useState<AnilistWidgetState>({ status: 'loading' });
   const [filter, setFilter] = useState<AnilistFilter>('CURRENT');
   const [manualRefresh, setManualRefresh] = useState(0);
   const requestRefresh = useCallback(() => {
@@ -113,8 +26,8 @@ export const AnilistWidget: React.FC = () => {
     let alive = true;
     const username = anilistUsername.trim();
     const selectedLists = (anilistShownLists.length ? anilistShownLists : ['CURRENT'])
-      .filter((value): value is AnilistListStatus => VALID_LISTS.includes(value as AnilistListStatus))
-      .slice(0, MAX_SHOWN_LISTS);
+      .filter((value): value is AnilistListStatus => ANILIST_VALID_LISTS.includes(value as AnilistListStatus))
+      .slice(0, ANILIST_MAX_SHOWN_LISTS);
 
     if (!username) {
       setState({ status: 'error', message: 'AniList: set username in Settings -> Advanced.' });
@@ -123,63 +36,7 @@ export const AnilistWidget: React.FC = () => {
 
     const fetchEntries = async () => {
       try {
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        };
-
-        const res = await fetch(ANILIST_ENDPOINT, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            query: QUERY,
-            variables: { userName: username, statusIn: selectedLists }
-          })
-        });
-
-        if (!res.ok) throw new Error(`AniList API error (${res.status})`);
-
-        const body = await res.json();
-        if (body?.errors?.length) {
-          const msg = body.errors[0]?.message || 'request failed';
-          throw new Error(msg);
-        }
-
-        const lists = body?.data?.MediaListCollection?.lists || [];
-        const rawEntries =
-          lists.flatMap((list: any) =>
-            (list?.entries || []).map((entry: any) => ({
-              ...entry,
-              __listStatus: entry?.status || list?.status || 'CURRENT'
-            }))
-          ) || [];
-        const items: AnilistEntry[] = rawEntries
-          .map((entry: any): AnilistEntry => ({
-            id: entry.id,
-            progress: entry.progress || 0,
-            mediaId: entry.media?.id || 0,
-            listStatus: VALID_LISTS.includes(entry.__listStatus) ? entry.__listStatus : 'CURRENT',
-            completedAtTs: toCompletedTimestamp(entry.completedAt),
-            nextAiringInSec:
-              entry.media?.status === 'RELEASING'
-                ? Number(entry.media?.nextAiringEpisode?.timeUntilAiring ?? 0) || null
-                : null,
-            title: pickTitle(entry.media),
-            episodes: entry.media?.episodes ?? null,
-            status: entry.media?.status ?? null,
-            airedEpisodes:
-              entry.media?.status === 'RELEASING'
-                ? Math.max(0, Number((entry.media?.nextAiringEpisode?.episode ?? 1) - 1))
-                : null,
-            coverImage: entry.media?.coverImage?.medium || '',
-            siteUrl: entry.media?.siteUrl || '#'
-          }))
-          .filter((entry: AnilistEntry) => entry.mediaId > 0)
-          .sort(
-            (a: AnilistEntry, b: AnilistEntry) =>
-              selectedLists.indexOf(a.listStatus) - selectedLists.indexOf(b.listStatus)
-          );
-
+        const items = await fetchAnilistAnimeEntries(username, selectedLists);
         if (!alive) return;
         setState({ status: 'success', items });
       } catch (err) {
@@ -191,17 +48,18 @@ export const AnilistWidget: React.FC = () => {
 
     setState({ status: 'loading' });
     fetchEntries();
-    const timer = window.setInterval(fetchEntries, 120000);
+    const timer = window.setInterval(fetchEntries, ANILIST_WIDGET_POLL_MS);
     return () => {
       alive = false;
       window.clearInterval(timer);
     };
   }, [anilistShownLists, anilistUsername, manualRefresh]);
 
+  /** Keep active tab valid when Settings trims visible lists. */
   useEffect(() => {
     const selectedLists = (anilistShownLists.length ? anilistShownLists : ['CURRENT'])
-      .filter((value): value is AnilistListStatus => VALID_LISTS.includes(value as AnilistListStatus))
-      .slice(0, MAX_SHOWN_LISTS);
+      .filter((value): value is AnilistListStatus => ANILIST_VALID_LISTS.includes(value as AnilistListStatus))
+      .slice(0, ANILIST_MAX_SHOWN_LISTS);
     if (!selectedLists.includes(filter)) {
       setFilter(selectedLists[0] || 'CURRENT');
     }
@@ -244,8 +102,8 @@ export const AnilistWidget: React.FC = () => {
     }
 
     const selectedLists = (anilistShownLists.length ? anilistShownLists : ['CURRENT'])
-      .filter((value): value is AnilistListStatus => VALID_LISTS.includes(value as AnilistListStatus))
-      .slice(0, MAX_SHOWN_LISTS);
+      .filter((value): value is AnilistListStatus => ANILIST_VALID_LISTS.includes(value as AnilistListStatus))
+      .slice(0, ANILIST_MAX_SHOWN_LISTS);
     const filteredItems = state.items.filter((item) => item.listStatus === filter);
     const visibleItems =
       filter === 'COMPLETED'
@@ -269,7 +127,7 @@ export const AnilistWidget: React.FC = () => {
                   : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-fg)]'
               }`}
             >
-              [{LIST_LABELS[option].toUpperCase()}]
+              [{ANILIST_LIST_LABELS[option].toUpperCase()}]
             </button>
           ))}
           <button type="button" onClick={requestRefresh} className={`${ANILIST_REFRESH_BTN_CLASS} ml-auto`} aria-label="Refresh" title="Refresh">
@@ -277,36 +135,33 @@ export const AnilistWidget: React.FC = () => {
           </button>
         </div>
         <ul className="space-y-2">
-          {visibleItems.map((entry) => (
-            <li key={entry.id}>
-              {/** Use AniList ID route for Miruro links when enabled. */}
-              {(() => {
-                const href =
-                  anilistLinkTarget === 'miruro'
-                    ? `https://www.miruro.to/watch/${entry.mediaId}/`
-                    : entry.siteUrl;
-                return (
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 hover:text-[var(--color-accent)]"
-                title={entry.title}
-              >
-                {entry.coverImage ? (
-                  <img src={entry.coverImage} alt="" className="h-10 w-7 shrink-0 object-cover" loading="lazy" />
-                ) : (
-                  <div className="h-10 w-7 shrink-0 border border-[var(--color-border)]" />
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-[var(--color-fg,#e0e0e0)]">{entry.title}</p>
-                  <p className="font-mono text-[10px] text-[var(--color-muted,#888888)]">{formatProgress(entry)}</p>
-                </div>
-              </a>
-                );
-              })()}
-            </li>
-          ))}
+          {visibleItems.map((entry) => {
+            const href =
+              anilistLinkTarget === 'miruro'
+                ? `https://www.miruro.to/watch/${entry.mediaId}/`
+                : entry.siteUrl;
+            return (
+              <li key={entry.id}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 hover:text-[var(--color-accent)]"
+                  title={entry.title}
+                >
+                  {entry.coverImage ? (
+                    <img src={entry.coverImage} alt="" className="h-10 w-7 shrink-0 object-cover" loading="lazy" />
+                  ) : (
+                    <div className="h-10 w-7 shrink-0 border border-[var(--color-border)]" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-[var(--color-fg,#e0e0e0)]">{entry.title}</p>
+                    <p className="font-mono text-[10px] text-[var(--color-muted,#888888)]">{formatAnilistProgress(entry)}</p>
+                  </div>
+                </a>
+              </li>
+            );
+          })}
         </ul>
       </div>
     );
@@ -314,4 +169,3 @@ export const AnilistWidget: React.FC = () => {
 
   return <div className="h-full overflow-auto pr-1 custom-scrollbar">{content}</div>;
 };
-

@@ -97,6 +97,8 @@ interface AppContextType {
     setShowWidgetTitles: (show: boolean) => void;
     showFavicons: boolean;
     setShowFavicons: (show: boolean) => void;
+    faviconRefreshNonce: number;
+    requestFaviconRefresh: () => void;
     reserveSettingsSpace: boolean;
     setReserveSettingsSpace: (reserve: boolean) => void;
     customFont: string;
@@ -198,6 +200,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [searchSlashHotkeyEnabled, setSearchSlashHotkeyEnabled] = useStickyState<boolean>(true, 'tui-search-slash-hotkey');
     const [showWidgetTitles, setShowWidgetTitles] = useStickyState<boolean>(true, 'tui-show-titles');
     const [showFavicons, setShowFavicons] = useStickyState<boolean>(true, 'tui-show-favicons');
+    const [faviconRefreshNonce, setFaviconRefreshNonce] = useState(0);
     const [reserveSettingsSpace, setReserveSettingsSpace] = useStickyState<boolean>(true, 'tui-reserve-settings');
     const [customFont, setCustomFont] = useStickyState<string>('', 'tui-custom-font');
     const [customTabTitle, setCustomTabTitle] = useStickyState<string>('~', 'tui-tab-title');
@@ -502,6 +505,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
     };
 
+    const requestFaviconRefresh = () => {
+        setFaviconRefreshNonce((n) => n + 1);
+    };
+
     const toggleWidget = (key: string) => {
         if (key.includes('-') && activeWidgets[key]) {
             removeExtraWidget(key);
@@ -676,6 +683,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         searchSlashHotkeyEnabled, setSearchSlashHotkeyEnabled,
         showWidgetTitles, setShowWidgetTitles,
         showFavicons, setShowFavicons,
+        faviconRefreshNonce,
+        requestFaviconRefresh,
         reserveSettingsSpace, setReserveSettingsSpace,
         customFont, setCustomFont,
         customTabTitle, setCustomTabTitle,
