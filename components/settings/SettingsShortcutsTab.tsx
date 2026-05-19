@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
 import { LinkGroup } from '../../types';
-import { clearFaviconCache } from '../../utils/faviconCache';
 
 interface SettingsShortcutsTabProps {
     linkGroups: LinkGroup[];
     onUpdateLinks: (groups: LinkGroup[]) => void;
-    onRefetchFavicons: () => void;
-    showFavicons: boolean;
-    setShowFavicons: (show: boolean) => void;
+    linkIconMode: 'favicon' | 'arrow' | 'hide';
+    setLinkIconMode: (mode: 'favicon' | 'arrow' | 'hide') => void;
 }
 
 export const SettingsShortcutsTab: React.FC<SettingsShortcutsTabProps> = ({
     linkGroups,
     onUpdateLinks,
-    onRefetchFavicons,
-    showFavicons,
-    setShowFavicons,
+    linkIconMode,
+    setLinkIconMode,
 }) => {
     const [newCatName, setNewCatName] = useState('');
     const [newLinkInputs, setNewLinkInputs] = useState<Record<string, { label: string, url: string, favicon: string }>>({});
@@ -120,29 +117,26 @@ export const SettingsShortcutsTab: React.FC<SettingsShortcutsTabProps> = ({
     return (
         <div className="space-y-6">
             <div className="border border-[var(--color-border)] p-4">
-                <h3 className="text-[var(--color-accent)] font-bold mb-3">favicons settings</h3>
-                <div className="flex gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setShowFavicons(!showFavicons)}
-                        className={`border px-2 py-1 text-xs font-mono no-radius transition-colors ${
-                            showFavicons
-                                ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
-                                : 'border-[var(--color-border)] text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
-                        }`}
-                    >
-                        [ {showFavicons ? 'DISABLE' : 'ENABLE'} FAVICONS ]
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            clearFaviconCache();
-                            onRefetchFavicons();
-                        }}
-                        className="border border-[var(--color-border)] px-2 py-1 text-xs font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius"
-                    >
-                        [ REFETCH FAVICONS ]
-                    </button>
+                <h3 className="text-[var(--color-accent)] font-bold mb-3">Favicons</h3>
+                <div className="flex gap-4 flex-wrap">
+                    <div onClick={() => setLinkIconMode('favicon')} className="flex items-center gap-2 cursor-pointer select-none group">
+                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                            {linkIconMode === 'favicon' ? '[x]' : '[ ]'}
+                        </span>
+                        <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">show favicon</span>
+                    </div>
+                    <div onClick={() => setLinkIconMode('arrow')} className="flex items-center gap-2 cursor-pointer select-none group">
+                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                            {linkIconMode === 'arrow' ? '[x]' : '[ ]'}
+                        </span>
+                        <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">show &gt;</span>
+                    </div>
+                    <div onClick={() => setLinkIconMode('hide')} className="flex items-center gap-2 cursor-pointer select-none group">
+                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                            {linkIconMode === 'hide' ? '[x]' : '[ ]'}
+                        </span>
+                        <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">hide</span>
+                    </div>
                 </div>
             </div>
 

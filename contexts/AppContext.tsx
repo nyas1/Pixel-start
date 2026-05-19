@@ -95,8 +95,8 @@ interface AppContextType {
     setSearchSlashHotkeyEnabled: (enabled: boolean) => void;
     showWidgetTitles: boolean;
     setShowWidgetTitles: (show: boolean) => void;
-    showFavicons: boolean;
-    setShowFavicons: (show: boolean) => void;
+    linkIconMode: 'favicon' | 'arrow' | 'hide';
+    setLinkIconMode: (mode: 'favicon' | 'arrow' | 'hide') => void;
     faviconRefreshNonce: number;
     requestFaviconRefresh: () => void;
     reserveSettingsSpace: boolean;
@@ -156,6 +156,8 @@ interface AppContextType {
 
     weatherLocation: { latitude: null | number; longitude: null | number };
     setWeatherLocation: (location: { latitude: null | number; longitude: null | number }) => void;
+    weatherLocationMode: 'manual' | 'auto';
+    setWeatherLocationMode: (mode: 'manual' | 'auto') => void;
 
     // Actions
     handleSaveCustomTheme: (newTheme: Theme) => void;
@@ -199,7 +201,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [searchEnabledEngines, setSearchEnabledEngines] = useStickyState<SearchEngineId[]>(DEFAULT_SEARCH_ENGINE_IDS, 'tui-search-enabled-engines');
     const [searchSlashHotkeyEnabled, setSearchSlashHotkeyEnabled] = useStickyState<boolean>(true, 'tui-search-slash-hotkey');
     const [showWidgetTitles, setShowWidgetTitles] = useStickyState<boolean>(true, 'tui-show-titles');
-    const [showFavicons, setShowFavicons] = useStickyState<boolean>(true, 'tui-show-favicons');
+    const [linkIconMode, setLinkIconMode] = useStickyState<'favicon' | 'arrow' | 'hide'>('favicon', 'tui-link-icon-mode');
     const [faviconRefreshNonce, setFaviconRefreshNonce] = useState(0);
     const [reserveSettingsSpace, setReserveSettingsSpace] = useStickyState<boolean>(true, 'tui-reserve-settings');
     const [customFont, setCustomFont] = useStickyState<string>('', 'tui-custom-font');
@@ -209,7 +211,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [funOptionsRaw, setFunOptions] = useStickyState<FunOptions>(funDefaults, 'tui-fun-options-v3');
 
     const [weatherLocation, setWeatherLocation] = useStickyState<{ latitude: null | number; longitude: null | number }>({ latitude: null, longitude: null }, 'tui-weather-location');
-
+    const [weatherLocationMode, setWeatherLocationMode] = useStickyState<'manual' | 'auto'>('manual', 'tui-weather-location-mode');
 
     // merge defaults
     const funOptions = {
@@ -459,7 +461,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             maze: false
         });
         setShowWidgetTitles(true);
-        setShowFavicons(true);
+        setLinkIconMode('favicon');
         setCustomFont('');
         setCustomTabTitle('~');
         setCustomTabFavicon('');
@@ -588,7 +590,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 layouts,
                 activeWidgets,
                 showWidgetTitles,
-                showFavicons,
+                linkIconMode,
                 customFont,
                 customTabTitle,
                 customTabFavicon,
@@ -631,7 +633,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (d.layouts) setLayouts(d.layouts);
         if (d.activeWidgets) setActiveWidgets(d.activeWidgets);
         if (d.showWidgetTitles !== undefined) setShowWidgetTitles(d.showWidgetTitles);
-        if (d.showFavicons !== undefined) setShowFavicons(d.showFavicons);
+        if (d.linkIconMode) setLinkIconMode(d.linkIconMode);
+        else if (d.showFavicons !== undefined) setLinkIconMode(d.showFavicons ? 'favicon' : 'hide');
         if (d.customFont !== undefined) setCustomFont(d.customFont);
         if (d.customTabTitle !== undefined) setCustomTabTitle(d.customTabTitle);
         if (d.customTabFavicon !== undefined) setCustomTabFavicon(d.customTabFavicon);
@@ -682,7 +685,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         searchEnabledEngines, setSearchEnabledEngines,
         searchSlashHotkeyEnabled, setSearchSlashHotkeyEnabled,
         showWidgetTitles, setShowWidgetTitles,
-        showFavicons, setShowFavicons,
+        linkIconMode, setLinkIconMode,
         faviconRefreshNonce,
         requestFaviconRefresh,
         reserveSettingsSpace, setReserveSettingsSpace,
@@ -706,6 +709,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isResizingEnabled, setIsResizingEnabled,
         presets, setPresets,
         weatherLocation, setWeatherLocation,
+        weatherLocationMode, setWeatherLocationMode,
         handleSaveCustomTheme,
         handleDeleteCustomTheme,
         resetLayout,

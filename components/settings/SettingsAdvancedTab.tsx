@@ -126,8 +126,6 @@ async function compressImageFileToFaviconDataUrl(file: File): Promise<string> {
 interface SettingsAdvancedTabProps {
     showWidgetTitles: boolean;
     onToggleWidgetTitles: () => void;
-    showFavicons: boolean;
-    onToggleShowFavicons: () => void;
     reserveSettingsSpace: boolean;
     onToggleReserveSettings: () => void;
     customFont: string;
@@ -180,6 +178,8 @@ interface SettingsAdvancedTabProps {
     onCustomCssChange: (css: string) => void;
     weatherLocation: { latitude: null | number; longitude: null | number };
     setWeatherLocation: (location: { latitude: null | number; longitude: null | number }) => void;
+    weatherLocationMode: 'manual' | 'auto';
+    setWeatherLocationMode: (mode: 'manual' | 'auto') => void;
     spotifyPixelAlbumArt: boolean;
     onToggleSpotifyPixelAlbumArt: () => void;
     spotifyPulse: boolean;
@@ -208,8 +208,6 @@ interface SettingsAdvancedTabProps {
 export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     showWidgetTitles,
     onToggleWidgetTitles,
-    showFavicons,
-    onToggleShowFavicons,
     reserveSettingsSpace,
     onToggleReserveSettings,
     customFont,
@@ -251,6 +249,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     customCss,
     onCustomCssChange,
     weatherLocation, setWeatherLocation,
+    weatherLocationMode, setWeatherLocationMode,
     spotifyPixelAlbumArt,
     onToggleSpotifyPixelAlbumArt,
     spotifyPulse,
@@ -716,15 +715,52 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                     </div>
 
                     <div className="flex flex-col gap-2 mt-2 border-t border-[var(--color-border)] pt-2 border-dashed">
-                        <h3 className="text-[var(--color-accent)] font-bold ">Weather Location</h3>
-                        <div className="flex flex-col gap-1 ">
-                            <label htmlFor="latitude" className="text-[var(--color-muted)] text-sm">Latitude</label>
-                            <input type="text" id="latitude" className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans" placeholder={String(weatherLocation.latitude ?? '1.234567')} onChange={(e) => setWeatherLocation({ latitude: Number(e.target.value), longitude: weatherLocation.longitude })} />
+                        <h3 className="text-[var(--color-accent)] font-bold">Weather Location</h3>
+                        <div className="flex gap-4">
+                            <div onClick={() => setWeatherLocationMode('manual')} className="flex items-center gap-2 cursor-pointer select-none group">
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {weatherLocationMode === 'manual' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Manual</span>
+                            </div>
+                            <div
+                                onClick={() => {
+                                    setWeatherLocationMode('auto');
+                                    if (navigator.geolocation) {
+                                        navigator.geolocation.getCurrentPosition(
+                                            (pos) => {
+                                                setWeatherLocation({
+                                                    latitude: pos.coords.latitude,
+                                                    longitude: pos.coords.longitude
+                                                });
+                                            },
+                                            (err) => {
+                                                console.error('Geolocation error:', err);
+                                                setWeatherLocationMode('manual');
+                                            }
+                                        );
+                                    }
+                                }}
+                                className="flex items-center gap-2 cursor-pointer select-none group"
+                            >
+                                <span className="font-mono text-[var(--color-accent)] font-bold">
+                                    {weatherLocationMode === 'auto' ? '[x]' : '[ ]'}
+                                </span>
+                                <span className="text-[var(--color-fg)] group-hover:text-[var(--color-accent)]">Auto</span>
+                            </div>
                         </div>
-                        <div className="flex flex-col gap-1 ">
-                            <label htmlFor="longitude" className="text-[var(--color-muted)] text-sm">Longitude</label>
-                            <input type="text" id="longitude" className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans" placeholder={String(weatherLocation.longitude ?? '1.234567')} onChange={(e) => setWeatherLocation({ latitude: weatherLocation.latitude, longitude: Number(e.target.value) })} />
-                        </div>
+                        {weatherLocationMode === 'manual' && (
+                            <>
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="latitude" className="text-[var(--color-muted)] text-sm">Latitude</label>
+                                    <input type="text" id="latitude" className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans" placeholder={String(weatherLocation.latitude ?? '1.234567')} onChange={(e) => setWeatherLocation({ latitude: Number(e.target.value), longitude: weatherLocation.longitude })} />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="longitude" className="text-[var(--color-muted)] text-sm">Longitude</label>
+                                    <input type="text" id="longitude" className="bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] px-2 py-1 text-sm focus:border-[var(--color-accent)] outline-none w-full select-text font-sans" placeholder={String(weatherLocation.longitude ?? '1.234567')} onChange={(e) => setWeatherLocation({ latitude: weatherLocation.latitude, longitude: Number(e.target.value) })} />
+                                </div>
+                            </>
+                        )}
                     </div>
 
                 </div>
@@ -786,15 +822,6 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
             <div className="border border-[var(--color-border)] p-4">
                 <h3 className="text-[var(--color-accent)] font-bold mb-2">Link Widget</h3>
                 <div className="flex flex-col gap-3">
-                    <div
-                        onClick={onToggleShowFavicons}
-                        className="flex items-center gap-2 cursor-pointer select-none group"
-                    >
-                        <span className="font-mono text-[var(--color-accent)] font-bold">
-                            {showFavicons ? '[x]' : '[ ]'}
-                        </span>
-                        <span className="text-[var(--color-fg)] text-sm group-hover:text-[var(--color-fg)]">Show Favicons</span>
-                    </div>
                     <div
                         onClick={() => onToggleOpenInNewTab?.()}
                         className="flex items-center gap-2 cursor-pointer select-none group"
@@ -920,7 +947,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                                 value={Number.isFinite(githubLimit) ? githubLimit : 10}
                                 onChange={(e) => {
                                     const n = Number.parseInt(e.target.value || '10', 10);
-                                    const clamped = Number.isFinite(n) ? Math.min(20, Math.max(1, n) ) : 10;
+                                    const clamped = Number.isFinite(n) ? Math.min(20, Math.max(1, n)) : 10;
                                     onGithubLimitChange(clamped);
                                 }}
                             />

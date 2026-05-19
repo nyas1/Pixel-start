@@ -3,7 +3,7 @@ import { WeatherData, processWeatherData } from '../utils/weatherUtils';
 import { useAppContext } from '../contexts/AppContext';
 
 export const useWeather = () => {
-  const { weatherLocation } = useAppContext();
+  const { weatherLocation, weatherLocationMode } = useAppContext();
   const [data, setData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +108,15 @@ export const useWeather = () => {
       }
     }
 
+    // If in manual mode and no coordinates set, don't auto-fetch
+    if (weatherLocationMode === 'manual' && (!weatherLocation.latitude || !weatherLocation.longitude)) {
+      if (!hasCache) {
+        setError("manual mode: set coordinates in weather settings");
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!navigator.geolocation) {
       if (!hasCache) {
         setError("no geo support");
@@ -116,6 +125,15 @@ export const useWeather = () => {
       return;
     }
 
+    // If in manual mode, use stored coordinates; if auto mode, fetch via geolocation
+    if (weatherLocationMode === 'manual') {
+      if (weatherLocation.latitude && weatherLocation.longitude) {
+        fetchWeather(Number(weatherLocation.latitude), Number(weatherLocation.longitude), { showError: true });
+      }
+      return;
+    }
+
+    // Auto mode: fetch via geolocation
     // Delay fetch if we have cache, otherwise fetch immediately
     const delay = hasCache ? 1000 : 0;
 
@@ -136,15 +154,15 @@ export const useWeather = () => {
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [fetchWeather]);
+  }, [fetchWeather, weatherLocationMode, weatherLocation]);
 
 
-  useEffect(() => { 
-    // Refetch when location changes (e.g. user updates in settings)
-    if (weatherLocation.latitude && weatherLocation.longitude && weatherLocation.latitude !== null && weatherLocation.longitude !== null) {
+  useEffect(() => {
+    // Refetch when location changes in manual mode (e.g. user updates in settings)
+    if (weatherLocationMode === 'manual' && weatherLocation.latitude && weatherLocation.longitude && weatherLocation.latitude !== null && weatherLocation.longitude !== null) {
       fetchWeather(Number(weatherLocation.latitude), Number(weatherLocation.longitude), { showError: true });
     }
-  }, [weatherLocation]); // Listen for location changes
+  }, [weatherLocation, weatherLocationMode, fetchWeather]);
 
   return { data, loading, error, refetch };
 };

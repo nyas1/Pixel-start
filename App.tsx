@@ -41,7 +41,7 @@ function AppContent() {
     tempUnit,
     openInNewTab,
     showWidgetTitles,
-    showFavicons,
+    linkIconMode,
     reserveSettingsSpace,
     customFont,
     funOptions,
@@ -156,7 +156,7 @@ function AppContent() {
               case 'todo':
                 return <TuiBox {...boxProps} title="todo-list"><TodoWidget tasks={todos} setTasks={setTodos} /></TuiBox>;
               case 'links':
-                return <TuiBox {...boxProps} title="links"><LinksWidget groups={linkGroups} openInNewTab={openInNewTab} showFavicons={showFavicons} /></TuiBox>;
+                return <TuiBox {...boxProps} title="links"><LinksWidget groups={linkGroups} openInNewTab={openInNewTab} linkIconMode={linkIconMode} /></TuiBox>;
               case 'donut':
                 return <TuiBox {...boxProps}><DonutWidget speed={funOptions.donut.speed} /></TuiBox>;
               case 'matrix':

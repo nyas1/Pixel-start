@@ -7,7 +7,7 @@ import { getCachedFaviconDataUrl, setCachedFaviconDataUrl } from '../utils/favic
 interface LinksWidgetProps {
     groups: LinkGroup[];
     openInNewTab?: boolean;
-    showFavicons?: boolean;
+    linkIconMode?: 'favicon' | 'arrow' | 'hide';
 }
 
 const getFaviconUrl = (rawUrl: string): string | null => {
@@ -75,7 +75,7 @@ const fetchFaviconDataUrl = async (urls: string[]): Promise<string | null> => {
     return null;
 };
 
-const ShortcutLink: React.FC<{ label: string; url: string; openInNewTab: boolean; showFavicons: boolean; faviconOverride?: string; refreshNonce: number }> = ({ label, url, openInNewTab, showFavicons, faviconOverride, refreshNonce }) => {
+const ShortcutLink: React.FC<{ label: string; url: string; openInNewTab: boolean; linkIconMode: 'favicon' | 'arrow' | 'hide'; faviconOverride?: string; refreshNonce: number }> = ({ label, url, openInNewTab, linkIconMode, faviconOverride, refreshNonce }) => {
     const [iconHidden, setIconHidden] = React.useState(false);
     const [resolvedFavicon, setResolvedFavicon] = React.useState<string | null>(null);
     const faviconUrl = getSafeOverrideFaviconUrl(faviconOverride) || getFaviconUrl(url);
@@ -84,12 +84,16 @@ const ShortcutLink: React.FC<{ label: string; url: string; openInNewTab: boolean
 
     React.useEffect(() => {
         setIconHidden(false);
-    }, [faviconUrl, showFavicons, refreshNonce]);
+    }, [faviconUrl, linkIconMode, refreshNonce]);
 
     React.useEffect(() => {
         let cancelled = false;
         const run = async () => {
-            if (!showFavicons || !faviconUrl) {
+            if (linkIconMode === 'hide' || !faviconUrl) {
+                setResolvedFavicon(null);
+                return;
+            }
+            if (linkIconMode === 'arrow') {
                 setResolvedFavicon(null);
                 return;
             }
@@ -118,7 +122,7 @@ const ShortcutLink: React.FC<{ label: string; url: string; openInNewTab: boolean
         return () => {
             cancelled = true;
         };
-    }, [faviconUrl, hostname, showFavicons, usingOverride, refreshNonce]);
+    }, [faviconUrl, hostname, linkIconMode, usingOverride, refreshNonce]);
 
     return (
         <a
@@ -129,7 +133,7 @@ const ShortcutLink: React.FC<{ label: string; url: string; openInNewTab: boolean
             title={url}
         >
             <span className="inline-flex items-center gap-2">
-                {showFavicons && !iconHidden && resolvedFavicon ? (
+                {linkIconMode === 'favicon' && !iconHidden && resolvedFavicon ? (
                     <img
                         src={resolvedFavicon}
                         alt=""
@@ -138,7 +142,7 @@ const ShortcutLink: React.FC<{ label: string; url: string; openInNewTab: boolean
                         className="inline-block opacity-80"
                         onError={() => setIconHidden(true)}
                     />
-                ) : (
+                ) : linkIconMode === 'hide' ? null : (
                     <span className="inline-block w-[14px] text-center opacity-50">&gt;</span>
                 )}
                 <span className="truncate">{label}</span>
@@ -147,7 +151,7 @@ const ShortcutLink: React.FC<{ label: string; url: string; openInNewTab: boolean
     );
 };
 
-export const LinksWidget: React.FC<LinksWidgetProps> = ({ groups, openInNewTab = true, showFavicons = true }) => {
+export const LinksWidget: React.FC<LinksWidgetProps> = ({ groups, openInNewTab = true, linkIconMode = 'favicon' }) => {
     const { faviconRefreshNonce } = useAppContext();
     return (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 h-full overflow-y-auto custom-scrollbar pr-2">
@@ -165,7 +169,7 @@ export const LinksWidget: React.FC<LinksWidgetProps> = ({ groups, openInNewTab =
                             label={link.label}
                             url={link.url}
                             openInNewTab={openInNewTab}
-                            showFavicons={showFavicons}
+                            linkIconMode={linkIconMode}
                             faviconOverride={link.favicon}
                             refreshNonce={faviconRefreshNonce}
                         />

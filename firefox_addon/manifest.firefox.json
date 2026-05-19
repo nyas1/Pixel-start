@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Terminal Tab",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Terminal Tab — customizable terminal-style new tab with widgets, themes, and more.",
   "icons": {
     "48": "icon48.png",
@@ -15,7 +15,9 @@
       "id": "terminaltab@straightheart.dev",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     },
     "gecko_android": {

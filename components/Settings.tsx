@@ -48,9 +48,9 @@ export const Settings: React.FC = () => {
         searchDefaultEngine, setSearchDefaultEngine,
         searchEnabledEngines, setSearchEnabledEngines,
         searchSlashHotkeyEnabled, setSearchSlashHotkeyEnabled,
-        showFavicons, setShowFavicons,
-        requestFaviconRefresh,
+        linkIconMode, setLinkIconMode,
         weatherLocation, setWeatherLocation,
+        weatherLocationMode, setWeatherLocationMode,
     } = useAppContext();
 
     const [isButtonVisible, setIsButtonVisible] = useState(false);
@@ -267,9 +267,8 @@ export const Settings: React.FC = () => {
                                 <SettingsShortcutsTab
                                     linkGroups={linkGroups}
                                     onUpdateLinks={setLinkGroups}
-                                    onRefetchFavicons={requestFaviconRefresh}
-                                    showFavicons={showFavicons}
-                                    setShowFavicons={setShowFavicons}
+                                    linkIconMode={linkIconMode}
+                                    setLinkIconMode={setLinkIconMode}
                                 />
                             )}
 
@@ -288,8 +287,6 @@ export const Settings: React.FC = () => {
                                 <SettingsAdvancedTab
                                     showWidgetTitles={showWidgetTitles}
                                     onToggleWidgetTitles={() => setShowWidgetTitles(!showWidgetTitles)}
-                                    showFavicons={showFavicons}
-                                    onToggleShowFavicons={() => setShowFavicons(!showFavicons)}
                                     reserveSettingsSpace={reserveSettingsSpace}
                                     onToggleReserveSettings={() => setReserveSettingsSpace(!reserveSettingsSpace)}
                                     customFont={customFont}
@@ -332,6 +329,8 @@ export const Settings: React.FC = () => {
                                     onCustomCssChange={setCustomCss}
                                     weatherLocation={weatherLocation}
                                     setWeatherLocation={setWeatherLocation}
+                                    weatherLocationMode={weatherLocationMode}
+                                    setWeatherLocationMode={setWeatherLocationMode}
                                     spotifyPixelAlbumArt={spotifyPixelAlbumArt}
                                     onToggleSpotifyPixelAlbumArt={() => setSpotifyPixelAlbumArt(!spotifyPixelAlbumArt)}
                                     spotifyPulse={spotifyPulse}

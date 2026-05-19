@@ -12,6 +12,8 @@ const distIndex = path.join(root, 'dist', 'index.html')
 const newtabPath = path.join(root, 'firefox_addon', 'newtab.html')
 const srcAssets = path.join(root, 'dist', 'assets')
 const destAssets = path.join(root, 'firefox_addon', 'assets')
+const srcImages = path.join(root, 'dist', 'images')
+const destImages = path.join(root, 'firefox_addon', 'images')
 
 if (!fs.existsSync(distIndex)) {
   console.error('Missing dist/index.html — run npm run build:extension first.')
@@ -43,4 +45,14 @@ for (const name of fs.readdirSync(srcAssets)) {
   fs.cpSync(path.join(srcAssets, name), path.join(destAssets, name), { recursive: true })
 }
 
-console.log('Synced dist → firefox_addon (assets + newtab.html hashes).')
+if (fs.existsSync(srcImages)) {
+  if (fs.existsSync(destImages)) {
+    fs.rmSync(destImages, { recursive: true })
+  }
+  fs.mkdirSync(destImages, { recursive: true })
+  for (const name of fs.readdirSync(srcImages)) {
+    fs.cpSync(path.join(srcImages, name), path.join(destImages, name), { recursive: true })
+  }
+}
+
+console.log('Synced dist → firefox_addon (assets + images + newtab.html hashes).')
