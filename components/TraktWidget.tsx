@@ -192,11 +192,10 @@ export const TraktWidget: React.FC = () => {
               setListTab('now');
               setHasSavedListTab(true);
             }}
-            className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${
-              listTab === 'now'
+            className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${listTab === 'now'
                 ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
                 : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-fg)]'
-            }`}
+              }`}
           >
             [NOW]
           </button>
@@ -206,11 +205,10 @@ export const TraktWidget: React.FC = () => {
               setListTab('continue');
               setHasSavedListTab(true);
             }}
-            className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${
-              listTab === 'continue'
+            className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${listTab === 'continue'
                 ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
                 : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-fg)]'
-            }`}
+              }`}
           >
             [CONTINUE]
           </button>
@@ -220,11 +218,10 @@ export const TraktWidget: React.FC = () => {
               setListTab('recent');
               setHasSavedListTab(true);
             }}
-            className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${
-              listTab === 'recent'
+            className={`border px-1.5 py-0.5 text-[10px] font-mono no-radius ${listTab === 'recent'
                 ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
                 : 'border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-fg)]'
-            }`}
+              }`}
           >
             [RECENT]
           </button>
