@@ -202,6 +202,8 @@ interface SettingsAdvancedTabProps {
     onTraktClientIdChange: (value: string) => void;
     traktClientSecret: string;
     onTraktClientSecretChange: (value: string) => void;
+    traktContinueDays: number;
+    onTraktContinueDaysChange: (days: number) => void;
 
 }
 
@@ -272,6 +274,8 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
     onTraktClientIdChange,
     traktClientSecret,
     onTraktClientSecretChange,
+    traktContinueDays,
+    onTraktContinueDaysChange,
 }) => {
     const clickTimeoutsRef = React.useRef<Record<string, number>>({});
     const faviconFileRef = React.useRef<HTMLInputElement>(null);
@@ -1028,7 +1032,7 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                                 onChange={(e) => onTraktClientIdChange(e.target.value)}
                             />
                         </div>
-                        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
+                        <div className="flex flex-col gap-1">
                             <span className="text-[var(--color-muted)] text-xs">Trakt Client Secret</span>
                             <input
                                 type="password"
@@ -1039,8 +1043,8 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                                 onChange={(e) => onTraktClientSecretChange(e.target.value)}
                             />
                         </div>
-                        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
-                            <span className="text-[var(--color-muted)] text-xs">TMDB API Key (for posters)</span>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[var(--color-muted)] text-xs">TMDB API Key for posters</span>
                             <input
                                 type="password"
                                 autoComplete="off"
@@ -1055,6 +1059,23 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                         ) : (
                             <p className="text-[10px] font-mono text-[var(--color-muted)]">Status: not connected</p>
                         )}
+                        <div className="flex gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => void handleTraktConnect()}
+                                className="border border-[var(--color-border)] px-2 py-1 text-xs font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius"
+                            >
+                                [ CONNECT ]
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleTraktDisconnect}
+                                className="border border-[var(--color-border)] px-2 py-1 text-xs font-mono text-[var(--color-muted)] hover:border-red-500 hover:text-red-500 no-radius"
+                            >
+                                [ DISCONNECT ]
+                            </button>
+                        </div>
+                        <IntegrationsSetupLinkHint />
                         {traktDeviceState ? (
                             <div className="border border-[var(--color-border)] p-2 text-[10px] text-[var(--color-muted)] font-mono space-y-2">
                                 <div className="text-[10px] opacity-90">1) Open this on Trakt:</div>
@@ -1099,37 +1120,31 @@ export const SettingsAdvancedTab: React.FC<SettingsAdvancedTabProps> = ({
                         {traktAuthMessage ? (
                             <p className="text-[10px] font-mono text-[var(--color-muted)]">{traktAuthMessage}</p>
                         ) : null}
-                        <div className="flex gap-2 pt-1">
-                            <button
-                                type="button"
-                                onClick={() => void handleTraktConnect()}
-                                className="border border-[var(--color-border)] px-2 py-1 text-xs font-mono text-[var(--color-fg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] no-radius"
-                            >
-                                [ CONNECT ]
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleTraktDisconnect}
-                                className="border border-[var(--color-border)] px-2 py-1 text-xs font-mono text-[var(--color-muted)] hover:border-red-500 hover:text-red-500 no-radius"
-                            >
-                                [ DISCONNECT ]
-                            </button>
+                        <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 border-dashed">
+                            <span className="text-[var(--color-muted)] text-xs">Continue watching window:</span>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                {[30, 60, 90, 180].map((d) => (
+                                    <div
+                                        key={d}
+                                        onClick={() => onTraktContinueDaysChange(d)}
+                                        className="flex items-center gap-2 cursor-pointer select-none group"
+                                    >
+                                        <span className="font-mono text-[var(--color-accent)] font-bold">
+                                            {traktContinueDays === d ? '[x]' : '[ ]'}
+                                        </span>
+                                        <span className="text-[var(--color-fg)] text-sm group-hover:text-[var(--color-fg)]">
+                                            {d}d
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
-
             {/* matrix */}
             {activeWidgets['matrix'] && (
                 <div className="border border-[var(--color-border)] p-4 space-y-3">
-                    <h3 className="text-[var(--color-accent)] font-bold">⬡ Matrix Widget</h3>
-
-                    <AsciiSlider
-                        label="Drop Speed" value={funOptions.matrix.speed} min={5} max={200}
-                        displayValue={`${funOptions.matrix.speed}%`}
-                        onChange={(v) => onFunOptionsChange({ ...funOptions, matrix: { ...funOptions.matrix, speed: v } })}
-                    />
-
                     <AsciiSlider
                         label="Trail Fade" value={funOptions.matrix.fade} min={0.01} max={0.3} step={0.01}
                         displayValue={`${Math.round((1 - funOptions.matrix.fade * 3.33) * 100)}%`}

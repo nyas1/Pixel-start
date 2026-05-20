@@ -1,6 +1,6 @@
 {
   "name": "terminal-tab",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Retro-inspired terminal-style new tab dashboard (web + Firefox extension).",
   "repository": {
     "type": "git",

@@ -29,7 +29,7 @@ const TRAKT_WIDGET_LOGO_MASK_STYLE: React.CSSProperties = {
 };
 
 export const TraktWidget: React.FC = () => {
-  const { tmdbApiKey, traktClientId, traktClientSecret } = useAppContext();
+  const { tmdbApiKey, traktClientId, traktClientSecret, traktContinueDays } = useAppContext();
   const [state, setState] = useState<TraktWidgetState>({
     status: 'idle',
     message: 'Connect Trakt in Settings -> Advanced -> Trakt Widget.'
@@ -110,7 +110,15 @@ export const TraktWidget: React.FC = () => {
           tmdbToken
         });
         if (!alive) return;
-        setState({ status: 'success', nowWatching, continueItems, fallbackItems });
+        const maxDays = Number.isFinite(Number(traktContinueDays)) ? Number(traktContinueDays) : 90;
+        const maxMs = maxDays * 24 * 60 * 60 * 1000;
+        const filteredContinue = (continueItems || []).filter((item) => {
+          if (!item.pausedAt) return true;
+          const t = Date.parse(item.pausedAt);
+          if (Number.isNaN(t)) return true;
+          return Date.now() - t <= maxMs;
+        });
+        setState({ status: 'success', nowWatching, continueItems: filteredContinue, fallbackItems });
       } catch (error) {
         if (!alive) return;
         const msg = formatTraktFetchError(error);

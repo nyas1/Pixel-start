@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Terminal Tab",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Terminal Tab — customizable terminal-style new tab with widgets, themes, and more.",
   "icons": {
     "48": "icon48.png",

@@ -1,7 +1,7 @@
 /** Pure parsers and mappers from Trakt/TMDB JSON to widget rows (no I/O). */
 
 import type { TraktContinueItem, TraktNowWatching, TraktProgressRow, TraktWatchedItem } from './types';
-import { TRAKT_WIDGET_MAX_ITEMS } from './constants';
+import { TRAKT_WIDGET_MAX_ITEMS, TRAKT_LAST_EP_WATCHED_THRESHOLD_PCT } from './constants';
 
 /** Sentinel when season/episode numbers are missing (matches Trakt-less episode labels). */
 export const EPISODE_CODE_NA = 'N/A';
@@ -316,7 +316,7 @@ export const toContinueItems = (body: any): TraktContinueItem[] => {
   const arr = Array.isArray(body) ? body : [];
   const mapped = arr
     .filter((entry: any) => entry?.show && entry?.show?.ids?.trakt)
-    .map((entry: any): TraktContinueItem => {
+    .map((entry: any): TraktContinueItem | null => {
       const show = entry.show;
       const p = getListProgressPayload(entry);
       const nextEpisode = p?.next_episode || null;
@@ -330,6 +330,9 @@ export const toContinueItems = (body: any): TraktContinueItem[] => {
       const slug = String(show?.ids?.slug || show?.ids?.trakt);
       const tmdbIdRaw = Number(show?.ids?.tmdb);
       const tmdbId = Number.isFinite(tmdbIdRaw) && tmdbIdRaw > 0 ? tmdbIdRaw : null;
+      const pct = progressPctFromRow(entry, p, completedRaw, airedRaw);
+      const isLastEpisode = !nextEpisode && !!lastEpisode;
+      if (isLastEpisode && pct >= TRAKT_LAST_EP_WATCHED_THRESHOLD_PCT) return null;
       return {
         id: traktId,
         tmdbId,
@@ -340,7 +343,7 @@ export const toContinueItems = (body: any): TraktContinueItem[] => {
           Number.isFinite(episode?.number) ? Number(episode.number) : null
         ),
         episodeTitle: String(episode?.title || ''),
-        progressPct: progressPctFromRow(entry, p, completedRaw, airedRaw),
+        progressPct: pct,
         completedCount,
         airedCount,
         pausedAt: pickContinuePausedAt(entry, p),
@@ -348,7 +351,9 @@ export const toContinueItems = (body: any): TraktContinueItem[] => {
         showSlug: slug,
         posterImage: traktPosterFallback(traktId)
       };
-    });
+    })
+    .filter((x: TraktContinueItem | null): x is TraktContinueItem => x !== null);
+
   return dedupeContinueItems(sortContinueItemsByRecency(mapped)).slice(0, TRAKT_WIDGET_MAX_ITEMS);
 };
 

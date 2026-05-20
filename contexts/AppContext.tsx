@@ -147,6 +147,9 @@ interface AppContextType {
     /** TMDB v4 read access token for poster fallback in Trakt widget. */
     tmdbApiKey: string;
     setTmdbApiKey: (value: string) => void;
+    /** Number of days to include entries in the Trakt Continue tab (30/60/90/180). */
+    traktContinueDays: number;
+    setTraktContinueDays: (days: number) => void;
     isLayoutLocked: boolean;
     setIsLayoutLocked: (locked: boolean) => void;
     isResizingEnabled: boolean;
@@ -259,6 +262,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [traktClientId, setTraktClientId] = useStickyState<string>('', 'tui-trakt-client-id');
     const [traktClientSecret, setTraktClientSecret] = useStickyState<string>('', 'tui-trakt-client-secret');
     const [tmdbApiKey, setTmdbApiKey] = useStickyState<string>('', 'tui-tmdb-api-key');
+    const [traktContinueDays, setTraktContinueDays] = useStickyState<number>(90, 'tui-trakt-continue-days');
 
     const [isLayoutLocked, setIsLayoutLocked] = useStickyState<boolean>(true, 'tui-layout-locked-v2');
     const [isResizingEnabled, setIsResizingEnabled] = useStickyState<boolean>(false, 'tui-resizing-enabled');
@@ -705,6 +709,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         traktClientId, setTraktClientId,
         traktClientSecret, setTraktClientSecret,
         tmdbApiKey, setTmdbApiKey,
+        traktContinueDays, setTraktContinueDays,
         isLayoutLocked, setIsLayoutLocked,
         isResizingEnabled, setIsResizingEnabled,
         presets, setPresets,

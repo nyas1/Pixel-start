@@ -37,6 +37,7 @@ export const Settings: React.FC = () => {
         tmdbApiKey, setTmdbApiKey,
         traktClientId, setTraktClientId,
         traktClientSecret, setTraktClientSecret,
+        traktContinueDays, setTraktContinueDays,
         showWidgetTitles, setShowWidgetTitles,
         customFont, setCustomFont,
         customTabTitle, setCustomTabTitle,
@@ -353,6 +354,8 @@ export const Settings: React.FC = () => {
                                     onTraktClientIdChange={setTraktClientId}
                                     traktClientSecret={traktClientSecret}
                                     onTraktClientSecretChange={setTraktClientSecret}
+                                    traktContinueDays={traktContinueDays}
+                                    onTraktContinueDaysChange={setTraktContinueDays}
                                 />
                             )}
 

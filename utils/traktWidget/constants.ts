@@ -23,6 +23,9 @@ export const TMDB_POSTER_FETCH_MAX_IDS = 20;
 
 export const TRAKT_SHOW_META_CHUNK_SIZE = 15;
 
+/** Percent threshold to consider a single episode "watched" when filtering final-episode rows. */
+export const TRAKT_LAST_EP_WATCHED_THRESHOLD_PCT = 98;
+
 /** Parallel `/shows/{id}/progress/watched` calls when list stats are thin. */
 export const TRAKT_ENRICH_PER_SHOW_BATCH = 4;
 
